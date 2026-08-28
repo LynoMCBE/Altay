@@ -97,7 +97,7 @@ class SnowLayer extends Flowable implements Fallable{
 	}
 
 	public function ticksRandomly() : bool{
-		return true;
+		return false;
 	}
 
 	public function onRandomTick() : void{

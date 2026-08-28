@@ -48,9 +48,12 @@ final class GarbageCollectorManager{
 	private const GC_THRESHOLD_MAX = 1_000_000_000;
 	private const GC_THRESHOLD_DEFAULT = 10_001;
 	private const GC_THRESHOLD_STEP = 10_000;
+	private const MINIMUM_COLLECTION_INTERVAL_SECONDS = 5;
+	private const EMERGENCY_THRESHOLD_MULTIPLIER = 10;
 
 	private int $threshold = self::GC_THRESHOLD_DEFAULT;
 	private int $collectionTimeTotalNs = 0;
+	private int $lastCollectionTimeNs = 0;
 	private int $runs = 0;
 
 	private \Logger $logger;
@@ -86,12 +89,20 @@ final class GarbageCollectorManager{
 		if($rootsBefore < $this->threshold){
 			return 0;
 		}
+		$start = hrtime(true);
+		if(
+			$this->lastCollectionTimeNs !== 0 &&
+			$start - $this->lastCollectionTimeNs < self::MINIMUM_COLLECTION_INTERVAL_SECONDS * 1_000_000_000 &&
+			$rootsBefore < $this->threshold * self::EMERGENCY_THRESHOLD_MULTIPLIER
+		){
+			return 0;
+		}
 
 		$this->timings->startTiming();
 
-		$start = hrtime(true);
 		$cycles = gc_collect_cycles();
 		$end = hrtime(true);
+		$this->lastCollectionTimeNs = $end;
 
 		$rootsAfter = gc_status()["roots"];
 		$this->adjustGcThreshold($cycles, $rootsAfter);

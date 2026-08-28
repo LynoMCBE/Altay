@@ -45,6 +45,7 @@ use pocketmine\inventory\transaction\TransactionValidationException;
 use pocketmine\item\ConsumableItem;
 use pocketmine\item\Item;
 use pocketmine\item\Releasable;
+use pocketmine\item\Sword;
 use pocketmine\item\VanillaItems;
 use pocketmine\item\WritableBook;
 use pocketmine\item\WritableBookPage;
@@ -907,15 +908,64 @@ class InGamePacketHandler extends PacketHandler{
 			case PlayerAction::INTERACT_BLOCK: //TODO: ignored (for now)
 				break;
 			case PlayerAction::CREATIVE_PLAYER_DESTROY_BLOCK:
-				//in server auth block breaking, we get PREDICT_DESTROY_BLOCK anyway, so this action is redundant
+				if(!$this->player->isCreative()) {
+					$this->player->getNetworkSession()->getLogger()->debug("Ignoring PlayerAction $action on $pos because player isn't in creative");
+					$this->syncBlocksNearby($pos, $face);
+					break;
+				}
+
+				$item = $this->player->getInventory()->getItemInHand();
+				if($item instanceof Sword) {
+					$this->syncBlocksNearby($pos, $face);
+					break;
+				}
+
+				if(!$this->player->breakBlock($pos)){
+					$this->syncBlocksNearby($pos, $face);
+				}
 				break;
 			case PlayerAction::PREDICT_DESTROY_BLOCK:
 				self::validateFacing($face);
+				if($this->player->isCreative()) {
+					$this->session->getLogger()->debug("Ignoring PlayerAction $action on $pos because player is in creative mode");
+					break;
+				}
+
+				if($pos->distanceSquared($this->player->getLocation()) > 10000){
+					$this->session->getLogger()->debug("Ignoring PlayerAction $action on $pos because it is too far away from the player");
+					break;
+				}
+
+				$target = $this->player->getWorld()->getBlock($pos);
+				$breakHandler = $this->player->getBlockBreakHandler();
+				if(!$target->getBreakInfo()->breaksInstantly()){
+					if($this->lastBlockAttacked === null || !$blockPosition->equals($this->lastBlockAttacked)){
+						$this->session->getLogger()->debug("Ignoring PlayerAction $action on $pos because it isn't the block currently being broken");
+						$this->syncBlocksNearby($pos, $face);
+						break;
+					}
+					if($breakHandler === null || $breakHandler->getBlockPos()->distanceSquared($pos) >= 0.0001){
+						$this->session->getLogger()->debug("Ignoring PlayerAction $action on $pos because player has no matching BlockBreakHandler");
+						$this->syncBlocksNearby($pos, $face);
+						break;
+					}
+					$breakHandler->update(); // 1 tick compensation for the client sending this packet before the block break progress is updated
+
+					$this->session->getLogger()->debug("PlayerAction $action on $pos with break progress " . $breakHandler->getBreakProgress() . " (face: $face)");
+					if($breakHandler->getBreakProgress() < 1) {
+						//the client will send this when it starts to break a block, but also when it continues to break the
+						//currently targeted block, so we need to ignore it if the break progress is less than 1
+						//this is a hack to prevent the client from spamming this packet when it starts to break a block
+						$this->session->getLogger()->debug("Ignoring PlayerAction $action on $pos because break progress is less than 1");
+						$this->syncBlocksNearby($pos, $face);
+						break;
+					}
+				}
+
 				if(!$this->player->breakBlock($pos)){
 					$this->syncBlocksNearby($pos, $face);
 				}
 				$this->lastBlockAttacked = null;
-				$this->player->setUsingItem(false);
 				break;
 			case PlayerAction::MISSED_SWING:
 				$this->player->missSwing();

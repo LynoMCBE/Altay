@@ -151,6 +151,9 @@ use const PHP_INT_MIN;
  * @phpstan-type ChunkBlockPosHash int
  */
 class World implements ChunkManager{
+	private const MAXIMUM_LIGHT_EVERYWHERE = true;
+	private const DYNAMIC_SKY_LIGHT_UPDATES = false;
+	private const DYNAMIC_BLOCK_LIGHT_UPDATES = false;
 
 	private static int $worldIdCounter = 1;
 
@@ -1308,13 +1311,15 @@ class World implements ChunkManager{
 					$cache[$chunkHash] = false;
 					return false;
 				}
-				$lightPopulatedState = $adjacentChunk->isLightPopulated();
-				if($lightPopulatedState !== true){
-					if($lightPopulatedState === false){
-						$this->orderLightPopulation($chunkX + $cx, $chunkZ + $cz);
+				if(!self::MAXIMUM_LIGHT_EVERYWHERE){
+					$lightPopulatedState = $adjacentChunk->isLightPopulated();
+					if($lightPopulatedState !== true){
+						if($lightPopulatedState === false){
+							$this->orderLightPopulation($chunkX + $cx, $chunkZ + $cz);
+						}
+						$cache[$chunkHash] = false;
+						return false;
 					}
-					$cache[$chunkHash] = false;
-					return false;
 				}
 
 				$cache[$chunkHash] = true;
@@ -1740,6 +1745,9 @@ class World implements ChunkManager{
 	 * to get a real light value.
 	 */
 	public function computeSkyLightReduction() : int{
+		if(self::MAXIMUM_LIGHT_EVERYWHERE){
+			return 0;
+		}
 		$percentage = max(0, min(1, -(cos($this->getSunAngleRadians()) * 2 - 0.5)));
 
 		//TODO: check rain and thunder level
@@ -1751,7 +1759,7 @@ class World implements ChunkManager{
 	 * Returns how many points of sky light is subtracted based on the current time.
 	 */
 	public function getSkyLightReduction() : int{
-		return $this->skyLightReduction;
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 0 : $this->skyLightReduction;
 	}
 
 	/**
@@ -1770,6 +1778,9 @@ class World implements ChunkManager{
 	 * time of day.
 	 */
 	public function getFullLightAt(int $x, int $y, int $z) : int{
+		if(self::MAXIMUM_LIGHT_EVERYWHERE){
+			return 15;
+		}
 		$skyLight = $this->getRealBlockSkyLightAt($x, $y, $z);
 		if($skyLight < 15){
 			return max($skyLight, $this->getBlockLightAt($x, $y, $z));
@@ -1783,7 +1794,7 @@ class World implements ChunkManager{
 	 * current weather and time of day.
 	 */
 	public function getHighestAdjacentFullLightAt(int $x, int $y, int $z) : int{
-		return $this->getHighestAdjacentLight($x, $y, $z, $this->getFullLightAt(...));
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 15 : $this->getHighestAdjacentLight($x, $y, $z, $this->getFullLightAt(...));
 	}
 
 	/**
@@ -1802,7 +1813,7 @@ class World implements ChunkManager{
 	 * This is not affected by weather or time of day.
 	 */
 	public function getPotentialLightAt(int $x, int $y, int $z) : int{
-		return max($this->getPotentialBlockSkyLightAt($x, $y, $z), $this->getBlockLightAt($x, $y, $z));
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 15 : max($this->getPotentialBlockSkyLightAt($x, $y, $z), $this->getBlockLightAt($x, $y, $z));
 	}
 
 	/**
@@ -1810,7 +1821,7 @@ class World implements ChunkManager{
 	 * This is not affected by weather or time of day.
 	 */
 	public function getHighestAdjacentPotentialLightAt(int $x, int $y, int $z) : int{
-		return $this->getHighestAdjacentLight($x, $y, $z, $this->getPotentialLightAt(...));
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 15 : $this->getHighestAdjacentLight($x, $y, $z, $this->getPotentialLightAt(...));
 	}
 
 	/**
@@ -1820,6 +1831,9 @@ class World implements ChunkManager{
 	 * @return int 0-15
 	 */
 	public function getPotentialBlockSkyLightAt(int $x, int $y, int $z) : int{
+		if(self::MAXIMUM_LIGHT_EVERYWHERE){
+			return 15;
+		}
 		if(!$this->isInWorld($x, $y, $z)){
 			return $y >= self::Y_MAX ? 15 : 0;
 		}
@@ -1835,6 +1849,9 @@ class World implements ChunkManager{
 	 * @return int 0-15
 	 */
 	public function getRealBlockSkyLightAt(int $x, int $y, int $z) : int{
+		if(self::MAXIMUM_LIGHT_EVERYWHERE){
+			return 15;
+		}
 		$light = $this->getPotentialBlockSkyLightAt($x, $y, $z) - $this->skyLightReduction;
 		return $light < 0 ? 0 : $light;
 	}
@@ -1845,6 +1862,9 @@ class World implements ChunkManager{
 	 * @return int 0-15
 	 */
 	public function getBlockLightAt(int $x, int $y, int $z) : int{
+		if(self::MAXIMUM_LIGHT_EVERYWHERE){
+			return 15;
+		}
 		if(!$this->isInWorld($x, $y, $z)){
 			return 0;
 		}
@@ -1854,25 +1874,46 @@ class World implements ChunkManager{
 		return 0; //TODO: this should probably throw instead (light not calculated yet)
 	}
 
-	public function updateAllLight(int $x, int $y, int $z) : void{
+	public function updateAllLight(int $x, int $y, int $z, ?int $oldStateId = null, ?int $newStateId = null) : void{
+		if(self::MAXIMUM_LIGHT_EVERYWHERE){
+			return;
+		}
 		if(($chunk = $this->getChunk($x >> Chunk::COORD_BIT_SIZE, $z >> Chunk::COORD_BIT_SIZE)) === null || $chunk->isLightPopulated() !== true){
 			return;
 		}
 
 		$blockFactory = $this->blockStateRegistry;
-		$this->timings->doBlockSkyLightUpdates->startTiming();
-		if($this->skyLightUpdate === null){
-			$this->skyLightUpdate = new SkyLightUpdate(new SubChunkExplorer($this), $blockFactory->lightFilter, $blockFactory->blocksDirectSkyLight);
+		$updateSkyLight = self::DYNAMIC_SKY_LIGHT_UPDATES;
+		$updateBlockLight = self::DYNAMIC_BLOCK_LIGHT_UPDATES;
+		if($oldStateId !== null && $newStateId !== null){
+			$lightFilterChanged = $blockFactory->lightFilter[$oldStateId] !== $blockFactory->lightFilter[$newStateId];
+			$updateSkyLight = $updateSkyLight && (
+				$lightFilterChanged ||
+				isset($blockFactory->blocksDirectSkyLight[$oldStateId]) !== isset($blockFactory->blocksDirectSkyLight[$newStateId])
+			);
+			$updateBlockLight = $updateBlockLight && (
+				$lightFilterChanged ||
+				$blockFactory->light[$oldStateId] !== $blockFactory->light[$newStateId]
+			);
 		}
-		$this->skyLightUpdate->recalculateNode($x, $y, $z);
-		$this->timings->doBlockSkyLightUpdates->stopTiming();
 
-		$this->timings->doBlockLightUpdates->startTiming();
-		if($this->blockLightUpdate === null){
-			$this->blockLightUpdate = new BlockLightUpdate(new SubChunkExplorer($this), $blockFactory->lightFilter, $blockFactory->light);
+		if($updateSkyLight){
+			$this->timings->doBlockSkyLightUpdates->startTiming();
+			if($this->skyLightUpdate === null){
+				$this->skyLightUpdate = new SkyLightUpdate(new SubChunkExplorer($this), $blockFactory->lightFilter, $blockFactory->blocksDirectSkyLight);
+			}
+			$this->skyLightUpdate->recalculateNode($x, $y, $z);
+			$this->timings->doBlockSkyLightUpdates->stopTiming();
 		}
-		$this->blockLightUpdate->recalculateNode($x, $y, $z);
-		$this->timings->doBlockLightUpdates->stopTiming();
+
+		if($updateBlockLight){
+			$this->timings->doBlockLightUpdates->startTiming();
+			if($this->blockLightUpdate === null){
+				$this->blockLightUpdate = new BlockLightUpdate(new SubChunkExplorer($this), $blockFactory->lightFilter, $blockFactory->light);
+			}
+			$this->blockLightUpdate->recalculateNode($x, $y, $z);
+			$this->timings->doBlockLightUpdates->stopTiming();
+		}
 	}
 
 	/**
@@ -1900,7 +1941,7 @@ class World implements ChunkManager{
 	 * Returns the highest potential level of sky light in the positions adjacent to the specified block coordinates.
 	 */
 	public function getHighestAdjacentPotentialBlockSkyLight(int $x, int $y, int $z) : int{
-		return $this->getHighestAdjacentLight($x, $y, $z, $this->getPotentialBlockSkyLightAt(...));
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 15 : $this->getHighestAdjacentLight($x, $y, $z, $this->getPotentialBlockSkyLightAt(...));
 	}
 
 	/**
@@ -1908,14 +1949,14 @@ class World implements ChunkManager{
 	 * the world's current time of day and weather conditions.
 	 */
 	public function getHighestAdjacentRealBlockSkyLight(int $x, int $y, int $z) : int{
-		return $this->getHighestAdjacentPotentialBlockSkyLight($x, $y, $z) - $this->skyLightReduction;
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 15 : $this->getHighestAdjacentPotentialBlockSkyLight($x, $y, $z) - $this->skyLightReduction;
 	}
 
 	/**
 	 * Returns the highest block light level available in the positions adjacent to the specified block coordinates.
 	 */
 	public function getHighestAdjacentBlockLight(int $x, int $y, int $z) : int{
-		return $this->getHighestAdjacentLight($x, $y, $z, $this->getBlockLightAt(...));
+		return self::MAXIMUM_LIGHT_EVERYWHERE ? 15 : $this->getHighestAdjacentLight($x, $y, $z, $this->getBlockLightAt(...));
 	}
 
 	private function executeQueuedLightUpdates() : void{
@@ -2038,9 +2079,10 @@ class World implements ChunkManager{
 		}
 		$chunkX = $x >> Chunk::COORD_BIT_SIZE;
 		$chunkZ = $z >> Chunk::COORD_BIT_SIZE;
-		if($this->loadChunk($chunkX, $chunkZ) === null){ //current expected behaviour is to try to load the terrain synchronously
+		if(($chunk = $this->loadChunk($chunkX, $chunkZ)) === null){ //current expected behaviour is to try to load the terrain synchronously
 			throw new WorldException("Cannot set a block in un-generated terrain");
 		}
+		$oldStateId = self::MAXIMUM_LIGHT_EVERYWHERE ? null : $chunk->getBlockStateId($x & Chunk::COORD_MASK, $y, $z & Chunk::COORD_MASK);
 
 		//TODO: this computes state ID twice (we do it again in writeStateToWorld()). Not great for performance :(
 		$stateId = $block->getStateId();
@@ -2085,7 +2127,9 @@ class World implements ChunkManager{
 		}
 
 		if($update){
-			$this->updateAllLight($x, $y, $z);
+			if(!self::MAXIMUM_LIGHT_EVERYWHERE){
+				$this->updateAllLight($x, $y, $z, $oldStateId, $stateId);
+			}
 			$this->internalNotifyNeighbourBlockUpdate($x, $y, $z);
 		}
 

@@ -111,6 +111,9 @@ abstract class Living extends Entity{
 	private const TAG_EFFECT_SHOW_PARTICLES = "ShowParticles"; //TAG_Byte
 	private const TAG_EFFECT_AMBIENT = "Ambient"; //TAG_Byte
 
+	/** @var array<class-string<Item>, bool> */
+	private static array $ticksWhenWorn = [];
+
 	protected int $attackTime = 0;
 
 	public int $deadTicks = 0;
@@ -691,6 +694,15 @@ abstract class Living extends Entity{
 			}
 
 			foreach($this->armorInventory->getContents() as $index => $item){
+				$itemClass = $item::class;
+				$ticksWhenWorn = self::$ticksWhenWorn[$itemClass] ?? null;
+				if($ticksWhenWorn === null){
+					$ticksWhenWorn = (new \ReflectionMethod($item, "onTickWorn"))->getDeclaringClass()->getName() !== Item::class;
+					self::$ticksWhenWorn[$itemClass] = $ticksWhenWorn;
+				}
+				if(!$ticksWhenWorn){
+					continue;
+				}
 				$oldItem = clone $item;
 				if($item->onTickWorn($this)){
 					$hasUpdate = true;

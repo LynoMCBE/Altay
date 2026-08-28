@@ -49,6 +49,9 @@ parameters:
 		- pocketmine\DEBUG
 		- pocketmine\IS_DEVELOPMENT_BUILD
 		- pocketmine\network\mcpe\protocol\ProtocolInfo::CURRENT_PROTOCOL
+		- pocketmine\world\World::MAXIMUM_LIGHT_EVERYWHERE
+		- pocketmine\world\World::DYNAMIC_SKY_LIGHT_UPDATES
+		- pocketmine\world\World::DYNAMIC_BLOCK_LIGHT_UPDATES
 	stubFiles:
 		- tests/phpstan/stubs/chunkutils2.stub
 		- tests/phpstan/stubs/JsonMapper.stub
