@@ -89,7 +89,7 @@ class Cushion extends Item{
 	}
 
 	public function getMaxStackSize() : int{
-		return 64;
+		return 16;
 	}
 
 	public function getFuelTime() : int{
