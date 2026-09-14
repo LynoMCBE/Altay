@@ -402,7 +402,7 @@ final class CommonProperties{
 		$this->stairProperties = [
 			new BoolProperty(StateNames::UPSIDE_DOWN_BIT, fn(Stair $b) => $b->isUpsideDown(), fn(Stair $b, bool $v) => $b->setUpsideDown($v)),
 			new ValueFromIntProperty(StateNames::WEIRDO_DIRECTION, $vm->horizontalFacing5Minus, $hfGet, $hfSet),
-			new ValueFromStringProperty(StateNames::MC_CORNER, $vm->stairShape, fn(Stair $b) => $b->getShape(), fn(Stair $b, StairShape $v) => $b->setShape($v)),
+			new ValueFromStringProperty(StateNames::MC_CORNER, $vm->stairShape, fn(Stair $b) => $b->getShape(), fn(Stair $b, StairShape $v) => $b->setShape($v), BlockStateStringValues::MC_CORNER_NONE),
 		];
 
 		$this->stemProperties = [
@@ -446,7 +446,8 @@ final class CommonProperties{
 			$horizontalConnectionProperties[] = new BoolProperty(
 				$stateName,
 				fn(HorizontalConnections $b) => $b->isConnected($facing),
-				fn(HorizontalConnections $b, bool $v) => $b->setConnected($facing, $v)
+				fn(HorizontalConnections $b, bool $v) => $b->setConnected($facing, $v),
+				missingDefault: false
 			);
 		}
 		$this->horizontalConnectionProperties = $horizontalConnectionProperties;

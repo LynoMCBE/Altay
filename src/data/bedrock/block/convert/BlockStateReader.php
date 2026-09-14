@@ -74,7 +74,7 @@ final class BlockStateReader{
 	}
 
 	/** @throws BlockStateDeserializeException */
-	public function readBool(string $name) : bool{
+	public function readBool(string $name, ?bool $default = null) : bool{
 		unset($this->unusedStates[$name]);
 		$tag = $this->data->getState($name);
 		if($tag instanceof ByteTag){
@@ -83,6 +83,9 @@ final class BlockStateReader{
 				case 1: return true;
 				default: throw $this->badValueException($name, (string) $tag->getValue());
 			}
+		}
+		if($tag === null && $default !== null){
+			return $default;
 		}
 		throw $this->missingOrWrongTypeException($name, $tag);
 	}
@@ -107,12 +110,15 @@ final class BlockStateReader{
 	}
 
 	/** @throws BlockStateDeserializeException */
-	public function readString(string $name) : string{
+	public function readString(string $name, ?string $default = null) : string{
 		unset($this->unusedStates[$name]);
 		//TODO: only allow a specific set of values (strings are primarily used for enums)
 		$tag = $this->data->getState($name);
 		if($tag instanceof StringTag){
 			return $tag->getValue();
+		}
+		if($tag === null && $default !== null){
+			return $default;
 		}
 		throw $this->missingOrWrongTypeException($name, $tag);
 	}

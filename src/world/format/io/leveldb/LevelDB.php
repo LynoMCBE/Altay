@@ -29,6 +29,8 @@ use pocketmine\block\Block;
 use pocketmine\data\bedrock\BiomeIds;
 use pocketmine\data\bedrock\block\BlockStateDeserializeException;
 use pocketmine\data\bedrock\block\convert\UnsupportedBlockStateException;
+use pocketmine\data\bedrock\block\upgrade\HorizontalConnectionPaletteFixer;
+use pocketmine\data\bedrock\block\upgrade\HorizontalConnectionUpgradeSchema;
 use pocketmine\data\bedrock\WorldDataVersions;
 use pocketmine\nbt\LittleEndianNbtSerializer;
 use pocketmine\nbt\NBT;
@@ -657,7 +659,11 @@ class LevelDB extends BaseWorldProvider implements WritableWorldProvider{
 			return null;
 		}
 
-		//TODO: read PM_DATA_VERSION - we'll need it to fix up old chunks
+		$pmDataVersion = 0;
+		$rawPmDataVersion = $this->db->get($index . ChunkDataKey::PM_DATA_VERSION);
+		if($rawPmDataVersion !== false && strlen($rawPmDataVersion) === 8){
+			$pmDataVersion = Binary::readLLong($rawPmDataVersion);
+		}
 
 		$logger = new \PrefixedLogger($this->logger, "Loading chunk x=$chunkX z=$chunkZ v$chunkVersion");
 
@@ -718,6 +724,12 @@ class LevelDB extends BaseWorldProvider implements WritableWorldProvider{
 				break;
 			default:
 				throw new CorruptedChunkException("don't know how to decode chunk format version $chunkVersion");
+		}
+
+		if($pmDataVersion < HorizontalConnectionUpgradeSchema::CONNECTION_DATA_VERSION){
+			if(HorizontalConnectionPaletteFixer::fix($subChunks)){
+				$hasBeenUpgraded = true;
+			}
 		}
 
 		$nbt = new LittleEndianNbtSerializer();

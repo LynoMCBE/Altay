@@ -48,7 +48,8 @@ final class ValueFromStringProperty implements StringProperty{
 		private string $name,
 		private StateMap $map,
 		private \Closure $getter,
-		private \Closure $setter
+		private \Closure $setter,
+		private ?string $missingDefault = null
 	){}
 
 	public function getName() : string{ return $this->name; }
@@ -63,7 +64,7 @@ final class ValueFromStringProperty implements StringProperty{
 	}
 
 	public function deserialize(object $block, BlockStateReader $in) : void{
-		$this->deserializePlain($block, $in->readString($this->name));
+		$this->deserializePlain($block, $in->readString($this->name, $this->missingDefault));
 	}
 
 	public function deserializePlain(object $block, string $raw) : void{
