@@ -27,6 +27,7 @@ use altay\network\nethernet\Credentials;
 use altay\network\nethernet\IceServer;
 use altay\network\nethernet\NetherNetTransport;
 use altay\network\nethernet\ServerData;
+use altay\network\nethernet\auth\TokenTrust;
 use altay\network\transport\Transport;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use function dirname;
@@ -41,6 +42,8 @@ final class NetherNetTransportFactory implements TransportFactory{
 	/**
 	 * @param string[] $iceServers
 	 * @param string[] $iceInterfaces
+	 * @param string[] $advertisedAddresses
+	 * @param array{int, int}|null $udpPortRange
 	 */
 	public function __construct(
 		private int $networkId,
@@ -59,7 +62,11 @@ final class NetherNetTransportFactory implements TransportFactory{
 		private string $iceUsername = "",
 		private string $icePassword = "",
 		private bool $relayOnly = false,
-		private array $iceInterfaces = []
+		private array $iceInterfaces = [],
+		private array $advertisedAddresses = [],
+		private ?array $udpPortRange = null,
+		private ?string $tlsCertificatePath = null,
+		private ?string $tlsKeyPath = null
 	){}
 
 	public function getName() : string{
@@ -109,7 +116,16 @@ final class NetherNetTransportFactory implements TransportFactory{
 			//a player who joins by address is signed in and their client signs the offer, so the
 			//assertion is the only thing binding that connection to the identity it logs in with
 			requireEndpointIdentity: $this->requireEndpointIdentity,
-			iceInterfaces: $this->iceInterfaces
+			iceInterfaces: $this->iceInterfaces,
+			advertisedAddresses: $this->advertisedAddresses,
+			icePortRange: $this->udpPortRange,
+			tlsCertificatePath: $this->tlsCertificatePath,
+			tlsKeyPath: $this->tlsKeyPath,
+			//a client that found the server on the local network does not sign its offer at all, so
+			//only the players who joined by address can be held to a token the service issued - and
+			//they are held to it exactly when they are held to carrying an assertion in the first place
+			tokenTrust: TokenTrust::ANY,
+			endpointTokenTrust: $this->requireEndpointIdentity ? TokenTrust::MINECRAFT_AUTH : TokenTrust::ANY
 		);
 	}
 }

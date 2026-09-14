@@ -1305,21 +1305,83 @@ class Server {
 	 * @return string[]
 	 */
 	private function getNetherNetIceInterfaces() : array{
-		$configured = $this->configGroup->getProperty(Yml::NETWORK_NETHERNET_INTERFACES, []);
+		return $this->getNetherNetAddressList(Yml::NETWORK_NETHERNET_INTERFACES);
+	}
+
+	/**
+	 * Of the addresses gathered above, the ones a player joining by address can reach. The rest are
+	 * kept out of the answer, so that player does not spend a round of connectivity checks on each.
+	 *
+	 * @return string[]
+	 */
+	private function getNetherNetAdvertisedAddresses() : array{
+		return $this->getNetherNetAddressList(Yml::NETWORK_NETHERNET_ADVERTISE_ADDRESSES);
+	}
+
+	/**
+	 * @return string[]
+	 */
+	private function getNetherNetAddressList(string $property) : array{
+		$configured = $this->configGroup->getProperty($property, []);
 		if(!is_array($configured)){
-			$this->logger->warning("Ignoring " . Yml::NETWORK_NETHERNET_INTERFACES . ", it must be a list of addresses");
+			$this->logger->warning("Ignoring $property, it must be a list of addresses");
 			return [];
 		}
 
-		$interfaces = [];
+		$addresses = [];
 		foreach($configured as $address){
 			if(!is_string($address) || $address === ""){
-				$this->logger->warning("Ignoring a NetherNet interface entry, it is not an address");
+				$this->logger->warning("Ignoring an entry of $property, it is not an address");
 				continue;
 			}
-			$interfaces[] = $address;
+			$addresses[] = $address;
 		}
-		return $interfaces;
+		return $addresses;
+	}
+
+	/**
+	 * The UDP ports a player's media may use. Without one the system hands out whatever is free,
+	 * which cannot be forwarded through a firewall.
+	 *
+	 * @return array{int, int}|null
+	 */
+	private function getNetherNetUdpPortRange() : ?array{
+		$configured = $this->configGroup->getPropertyString(Yml::NETWORK_NETHERNET_UDP_PORT_RANGE, "");
+		if($configured === ""){
+			return null;
+		}
+		$parts = explode("-", $configured, limit: 2);
+		if(count($parts) !== 2 || !ctype_digit(trim($parts[0])) || !ctype_digit(trim($parts[1]))){
+			$this->logger->warning("Ignoring " . Yml::NETWORK_NETHERNET_UDP_PORT_RANGE . ", expected a range such as \"30000-30999\"");
+			return null;
+		}
+		return [(int) trim($parts[0]), (int) trim($parts[1])];
+	}
+
+	/**
+	 * A certificate or key the endpoint serves HTTPS with, or null when the operator has none. A
+	 * client opens with a TLS handshake either way and falls back to plaintext when it is refused.
+	 */
+	private function getNetherNetTlsPath(string $property) : ?string{
+		$configured = $this->configGroup->getPropertyString($property, "");
+		if($configured === ""){
+			return null;
+		}
+		$path = Path::isAbsolute($configured) ? $configured : Path::join($this->dataPath, $configured);
+		if(!file_exists($path)){
+			$this->logger->warning("Ignoring $property, there is no file at $path");
+			return null;
+		}
+		return $path;
+	}
+
+	/**
+	 * The name shown to a player the first time their client is asked to trust this server. It is
+	 * display text rather than part of the identity, so it can change without re-prompting anyone.
+	 */
+	private function getNetherNetIdentityDomain() : string{
+		$configured = $this->configGroup->getPropertyString(Yml::NETWORK_NETHERNET_IDENTITY_DOMAIN, "");
+		return $configured !== "" ? $configured : TextFormat::clean($this->getMotd());
 	}
 
 	private function startupPrepareConnectableNetworkInterfaces(
@@ -1360,6 +1422,12 @@ class Server {
 			}
 			if($useNetherNet){
 				[$requireIdentity, $requireEndpointIdentity] = $this->getNetherNetIdentityPolicy();
+				//the Servers tab asks for the MOTD and posts its offer over HTTP, and it does that on
+				//the server port unless the operator moved the endpoint somewhere else
+				$signallingPort = $this->configGroup->getPropertyInt(Yml::NETWORK_NETHERNET_SIGNALLING_PORT, 0);
+				if($signallingPort < 1 || $signallingPort > 65535){
+					$signallingPort = $port;
+				}
 				$transport = new ThreadedTransport(
 					$this->logger,
 					new NetherNetTransportFactory(
@@ -1371,21 +1439,25 @@ class Server {
 						$ip,
 						NetherNetTransport::DISCOVERY_PORT,
 						$this->getOnlineMode(),
-						$port,
+						$signallingPort,
 						Path::join($this->dataPath, "identity.key"),
-						$this->configGroup->getPropertyString(Yml::NETWORK_NETHERNET_IDENTITY_DOMAIN, "self"),
+						$this->getNetherNetIdentityDomain(),
 						$requireIdentity,
 						$requireEndpointIdentity,
 						$this->getNetherNetIceServers(),
 						$this->configGroup->getPropertyString(Yml::NETWORK_NETHERNET_ICE_USERNAME, ""),
 						$this->configGroup->getPropertyString(Yml::NETWORK_NETHERNET_ICE_PASSWORD, ""),
 						$this->configGroup->getPropertyBool(Yml::NETWORK_NETHERNET_RELAY_ONLY, false),
-						$this->getNetherNetIceInterfaces()
+						$this->getNetherNetIceInterfaces(),
+						$this->getNetherNetAdvertisedAddresses(),
+						$this->getNetherNetUdpPortRange(),
+						$this->getNetherNetTlsPath(Yml::NETWORK_NETHERNET_TLS_CERTIFICATE),
+						$this->getNetherNetTlsPath(Yml::NETWORK_NETHERNET_TLS_KEY)
 					),
 					$this->tickSleeper
 				);
 				if($this->network->registerInterface(new TransportNetworkInterface($this, $transport, $packetBroadcaster, $entityEventBroadcaster, $typeConverter))){
-					$this->logger->info("NetherNet network interface running on $ip:" . NetherNetTransport::DISCOVERY_PORT);
+					$this->logger->info("NetherNet network interface running on $ip:" . NetherNetTransport::DISCOVERY_PORT . ", signalling on $ip:$signallingPort");
 				}
 			}
 		}catch(NetworkInterfaceStartException $e){

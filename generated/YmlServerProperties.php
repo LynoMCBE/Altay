@@ -93,6 +93,7 @@ final class YmlServerProperties{
 	public const NETWORK_ENABLE_ENCRYPTION = 'network.enable-encryption';
 	public const NETWORK_MAX_MTU_SIZE = 'network.max-mtu-size';
 	public const NETWORK_NETHERNET = 'network.nethernet';
+	public const NETWORK_NETHERNET_ADVERTISE_ADDRESSES = 'network.nethernet.advertise-addresses';
 	public const NETWORK_NETHERNET_ICE_PASSWORD = 'network.nethernet.ice-password';
 	public const NETWORK_NETHERNET_ICE_SERVERS = 'network.nethernet.ice-servers';
 	public const NETWORK_NETHERNET_ICE_USERNAME = 'network.nethernet.ice-username';
@@ -100,6 +101,10 @@ final class YmlServerProperties{
 	public const NETWORK_NETHERNET_INTERFACES = 'network.nethernet.interfaces';
 	public const NETWORK_NETHERNET_RELAY_ONLY = 'network.nethernet.relay-only';
 	public const NETWORK_NETHERNET_REQUIRE_IDENTITY = 'network.nethernet.require-identity';
+	public const NETWORK_NETHERNET_SIGNALLING_PORT = 'network.nethernet.signalling-port';
+	public const NETWORK_NETHERNET_TLS_CERTIFICATE = 'network.nethernet.tls-certificate';
+	public const NETWORK_NETHERNET_TLS_KEY = 'network.nethernet.tls-key';
+	public const NETWORK_NETHERNET_UDP_PORT_RANGE = 'network.nethernet.udp-port-range';
 	public const NETWORK_TRANSPORT = 'network.transport';
 	public const NETWORK_UPNP_FORWARDING = 'network.upnp-forwarding';
 	public const PLAYER = 'player';

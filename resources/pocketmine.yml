@@ -69,8 +69,9 @@ network:
   transport: nethernet
   #Settings for the NetherNet transport.
   nethernet:
-    #Domain shown to players the first time their client is asked to trust this server's identity.
-    identity-domain: self
+    #Name shown to players the first time their client is asked to trust this server's identity.
+    #Leave empty to use the MOTD.
+    identity-domain: ""
     #Reject connections that do not carry a signed identity assertion. That signature is what ties a
     #connection to the account it logs in with, so "auto" requires it from players joining by address
     #whenever xbox-auth is on, and never from players who found the server on the local network,
@@ -89,6 +90,21 @@ network:
     #usually has several no player can reach, such as container bridges. Leave empty to use the
     #address the server is bound to, or every address when it is bound to all of them.
     interfaces: []
+    #Of the addresses gathered above, the ones players joining by address can actually reach. The
+    #others are kept out of the answer, so those players do not spend a connectivity check on each.
+    #Leave empty to offer every gathered address.
+    advertise-addresses: []
+    #TCP port the join endpoint listens on, which is where the Servers tab asks for the MOTD and
+    #posts its offer. Set to 0 to serve it on the server port.
+    signalling-port: 0
+    #UDP ports a player's media may use, written as "first-last" and at least 100 ports wide. Leave
+    #empty to let the system pick, which is fine until the ports have to be forwarded.
+    udp-port-range: ""
+    #Certificate and private key to serve the join endpoint over HTTPS with, in PEM form. Clients
+    #open with a TLS handshake and fall back to plaintext when it is refused, so leaving these empty
+    #still works. Leave the key empty when the certificate file carries it.
+    tls-certificate: ""
+    tls-key: ""
   #Threshold for batching packets, in bytes. Only these packets will be compressed
   #Set to 0 to compress everything, -1 to disable.
   batch-threshold: 256
