@@ -44,19 +44,30 @@ final class HorizontalConnectionPaletteFixer{
 	}
 
 	/**
+	 * Works out the connections and stair corners of a chunk whose blocks predate them.
+	 *
 	 * @param SubChunk[] $subChunks
 	 * @phpstan-param array<int, SubChunk> $subChunks
+	 * @phpstan-param (\Closure(int, int) : ?array<int, SubChunk>)|null $neighbourChunks the chunk at
+	 *        an offset of x and z chunks from this one, for the blocks on the edges. Without it they
+	 *        are worked out as if the chunk stood on its own, which leaves a fence looking cut off at
+	 *        every chunk border until someone builds next to it.
+	 *
+	 * @return bool whether anything changed
 	 */
-	public static function fix(array $subChunks) : bool{
+	public static function fix(array $subChunks, ?\Closure $neighbourChunks = null) : bool{
 		$registry = RuntimeBlockStateRegistry::getInstance();
 		if(!self::containsConnectable($subChunks, $registry)){
 			return false;
 		}
 
+		$changed = false;
 		foreach($subChunks as $subY => $subChunk){
-			self::fixSubChunk($subChunks, $subY, $subChunk, $registry);
+			if(self::fixSubChunk($subChunks, $subY, $subChunk, $registry, $neighbourChunks)){
+				$changed = true;
+			}
 		}
-		return true;
+		return $changed;
 	}
 
 	/**
@@ -83,10 +94,11 @@ final class HorizontalConnectionPaletteFixer{
 	/**
 	 * @param SubChunk[] $subChunks
 	 * @phpstan-param array<int, SubChunk> $subChunks
+	 * @phpstan-param (\Closure(int, int) : ?array<int, SubChunk>)|null $neighbourChunks
 	 */
-	private static function fixSubChunk(array $subChunks, int $subY, SubChunk $subChunk, RuntimeBlockStateRegistry $registry) : void{
+	private static function fixSubChunk(array $subChunks, int $subY, SubChunk $subChunk, RuntimeBlockStateRegistry $registry, ?\Closure $neighbourChunks) : bool{
 		if($subChunk->isEmptyFast()){
-			return;
+			return false;
 		}
 
 		$scan = false;
@@ -100,9 +112,10 @@ final class HorizontalConnectionPaletteFixer{
 			}
 		}
 		if(!$scan){
-			return;
+			return false;
 		}
 
+		$changed = false;
 		$yBase = $subY << SubChunk::COORD_BIT_SIZE;
 		for($x = 0; $x < SubChunk::EDGE_LENGTH; ++$x){
 			for($z = 0; $z < SubChunk::EDGE_LENGTH; ++$z){
@@ -113,18 +126,21 @@ final class HorizontalConnectionPaletteFixer{
 						continue;
 					}
 
-					$newId = self::recomputeStateId($block, $subChunks, $x, $yBase + $y, $z, $registry);
+					$newId = self::recomputeStateId($block, $subChunks, $x, $yBase + $y, $z, $registry, $neighbourChunks);
 					if($newId !== $oldId){
 						$subChunk->setBlockStateId($x, $y, $z, $newId);
+						$changed = true;
 					}
 				}
 			}
 		}
+		return $changed;
 	}
 
 	/**
 	 * @param SubChunk[] $subChunks
 	 * @phpstan-param array<int, SubChunk> $subChunks
+	 * @phpstan-param (\Closure(int, int) : ?array<int, SubChunk>)|null $neighbourChunks
 	 */
 	private static function recomputeStateId(
 		Block $block,
@@ -132,13 +148,15 @@ final class HorizontalConnectionPaletteFixer{
 		int $x,
 		int $y,
 		int $z,
-		RuntimeBlockStateRegistry $registry
+		RuntimeBlockStateRegistry $registry,
+		?\Closure $neighbourChunks
 	) : int{
 		if($block instanceof Stair){
-			$block->setShape(self::stairShape($block, $subChunks, $x, $y, $z, $registry));
+			$block->setShape(self::stairShape($block, $subChunks, $x, $y, $z, $registry, $neighbourChunks));
 		}elseif($block instanceof Fence || $block instanceof Thin){
 			foreach(Facing::HORIZONTAL as $facing){
-				$block->setConnected($facing, self::canConnect($block, $facing, self::neighbor($subChunks, $x, $y, $z, $facing, $registry)));
+				$side = self::neighbor($subChunks, $x, $y, $z, $facing, $registry, $neighbourChunks);
+				$block->setConnected($facing, self::canConnect($block, $facing, $side));
 			}
 		}
 
@@ -148,6 +166,7 @@ final class HorizontalConnectionPaletteFixer{
 	/**
 	 * @param SubChunk[] $subChunks
 	 * @phpstan-param array<int, SubChunk> $subChunks
+	 * @phpstan-param (\Closure(int, int) : ?array<int, SubChunk>)|null $neighbourChunks
 	 */
 	private static function neighbor(
 		array $subChunks,
@@ -155,13 +174,23 @@ final class HorizontalConnectionPaletteFixer{
 		int $y,
 		int $z,
 		int $facing,
-		RuntimeBlockStateRegistry $registry
+		RuntimeBlockStateRegistry $registry,
+		?\Closure $neighbourChunks
 	) : Block{
 		[$dx, $dy, $dz] = Facing::OFFSET[$facing];
 		$nx = $x + $dx;
 		$nz = $z + $dz;
+
 		if($nx < 0 || $nx > SubChunk::COORD_MASK || $nz < 0 || $nz > SubChunk::COORD_MASK){
-			return VanillaBlocks::AIR();
+			if($neighbourChunks === null){
+				return VanillaBlocks::AIR();
+			}
+			$subChunks = $neighbourChunks($nx >> SubChunk::COORD_BIT_SIZE, $nz >> SubChunk::COORD_BIT_SIZE);
+			if($subChunks === null){
+				return VanillaBlocks::AIR();
+			}
+			$nx &= SubChunk::COORD_MASK;
+			$nz &= SubChunk::COORD_MASK;
 		}
 
 		$ny = $y + $dy;
@@ -176,14 +205,15 @@ final class HorizontalConnectionPaletteFixer{
 	/**
 	 * @param SubChunk[] $subChunks
 	 * @phpstan-param array<int, SubChunk> $subChunks
+	 * @phpstan-param (\Closure(int, int) : ?array<int, SubChunk>)|null $neighbourChunks
 	 */
-	private static function stairShape(Stair $stair, array $subChunks, int $x, int $y, int $z, RuntimeBlockStateRegistry $registry) : StairShape{
+	private static function stairShape(Stair $stair, array $subChunks, int $x, int $y, int $z, RuntimeBlockStateRegistry $registry, ?\Closure $neighbourChunks) : StairShape{
 		$clockwise = Facing::rotateY($stair->getFacing(), true);
-		$backFacing = self::possibleCornerFacing($stair, $subChunks, $x, $y, $z, $registry, false);
+		$backFacing = self::possibleCornerFacing($stair, $subChunks, $x, $y, $z, $registry, false, $neighbourChunks);
 		if($backFacing !== null){
 			return $backFacing === $clockwise ? StairShape::OUTER_RIGHT : StairShape::OUTER_LEFT;
 		}
-		$frontFacing = self::possibleCornerFacing($stair, $subChunks, $x, $y, $z, $registry, true);
+		$frontFacing = self::possibleCornerFacing($stair, $subChunks, $x, $y, $z, $registry, true, $neighbourChunks);
 		if($frontFacing !== null){
 			return $frontFacing === $clockwise ? StairShape::INNER_RIGHT : StairShape::INNER_LEFT;
 		}
@@ -193,15 +223,17 @@ final class HorizontalConnectionPaletteFixer{
 	/**
 	 * @param SubChunk[] $subChunks
 	 * @phpstan-param array<int, SubChunk> $subChunks
+	 * @phpstan-param (\Closure(int, int) : ?array<int, SubChunk>)|null $neighbourChunks
 	 */
-	private static function possibleCornerFacing(Stair $stair, array $subChunks, int $x, int $y, int $z, RuntimeBlockStateRegistry $registry, bool $oppositeFacing) : ?int{
+	private static function possibleCornerFacing(Stair $stair, array $subChunks, int $x, int $y, int $z, RuntimeBlockStateRegistry $registry, bool $oppositeFacing, ?\Closure $neighbourChunks) : ?int{
 		$side = self::neighbor(
 			$subChunks,
 			$x,
 			$y,
 			$z,
 			$oppositeFacing ? Facing::opposite($stair->getFacing()) : $stair->getFacing(),
-			$registry
+			$registry,
+			$neighbourChunks
 		);
 		return (
 			$side instanceof Stair &&

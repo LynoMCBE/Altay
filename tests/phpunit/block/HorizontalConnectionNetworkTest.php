@@ -134,6 +134,50 @@ class HorizontalConnectionNetworkTest extends TestCase{
 		self::assertTrue($east->isConnected(Facing::WEST));
 	}
 
+	public function testPaletteFixerConnectsFencesAcrossAChunkBorder() : void{
+		$fence = VanillaBlocks::OAK_FENCE();
+		$eastLayer = new PalettedBlockArray(Block::EMPTY_STATE_ID);
+		$eastLayer->set(15, 4, 4, $fence->getStateId());
+		$eastEdge = new SubChunk(Block::EMPTY_STATE_ID, [$eastLayer], new PalettedBlockArray(BiomeIds::OCEAN));
+
+		$westLayer = new PalettedBlockArray(Block::EMPTY_STATE_ID);
+		$westLayer->set(0, 4, 4, $fence->getStateId());
+		$westEdge = new SubChunk(Block::EMPTY_STATE_ID, [$westLayer], new PalettedBlockArray(BiomeIds::OCEAN));
+
+		self::assertTrue(HorizontalConnectionPaletteFixer::fix(
+			[0 => $eastEdge],
+			fn(int $offsetX, int $offsetZ) => $offsetX === 1 && $offsetZ === 0 ? [0 => $westEdge] : null
+		));
+
+		$block = RuntimeBlockStateRegistry::getInstance()->fromStateId($eastEdge->getBlockStateId(15, 4, 4));
+		self::assertInstanceOf(WoodenFence::class, $block);
+		self::assertTrue($block->isConnected(Facing::EAST));
+	}
+
+	public function testPaletteFixerLeavesABorderFenceAloneWithoutItsNeighbour() : void{
+		$fence = VanillaBlocks::OAK_FENCE();
+		$layer = new PalettedBlockArray(Block::EMPTY_STATE_ID);
+		$layer->set(15, 4, 4, $fence->getStateId());
+		$subChunk = new SubChunk(Block::EMPTY_STATE_ID, [$layer], new PalettedBlockArray(BiomeIds::OCEAN));
+
+		self::assertFalse(HorizontalConnectionPaletteFixer::fix([0 => $subChunk]));
+
+		$block = RuntimeBlockStateRegistry::getInstance()->fromStateId($subChunk->getBlockStateId(15, 4, 4));
+		self::assertInstanceOf(WoodenFence::class, $block);
+		self::assertFalse($block->isConnected(Facing::EAST));
+	}
+
+	public function testPaletteFixerReportsNoChangeWhenTheBlocksAreAlreadyRight() : void{
+		$west = VanillaBlocks::OAK_FENCE()->setConnected(Facing::EAST, true);
+		$east = VanillaBlocks::OAK_FENCE()->setConnected(Facing::WEST, true);
+		$layer = new PalettedBlockArray(Block::EMPTY_STATE_ID);
+		$layer->set(4, 4, 4, $west->getStateId());
+		$layer->set(5, 4, 4, $east->getStateId());
+		$subChunk = new SubChunk(Block::EMPTY_STATE_ID, [$layer], new PalettedBlockArray(BiomeIds::OCEAN));
+
+		self::assertFalse(HorizontalConnectionPaletteFixer::fix([0 => $subChunk]));
+	}
+
 	public function testPaletteFixerSkipsEmptyPalettes() : void{
 		$subChunk = new SubChunk(Block::EMPTY_STATE_ID, [], new PalettedBlockArray(BiomeIds::OCEAN));
 		self::assertFalse(HorizontalConnectionPaletteFixer::fix([0 => $subChunk]));

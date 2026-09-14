@@ -38,7 +38,6 @@ use function str_ends_with;
 final class HorizontalConnectionUpgradeSchema{
 
 	public const SCHEMA_ID = 10000;
-	public const CONNECTION_DATA_VERSION = 2;
 
 	private function __construct(){
 	}
