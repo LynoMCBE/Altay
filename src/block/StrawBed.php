@@ -47,4 +47,8 @@ class StrawBed extends BedBase{
 		//straw isn't bouncy like wool is
 		return null;
 	}
+
+	public function getMaxStackSize() : int{
+		return 16;
+	}
 }
