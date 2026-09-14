@@ -1422,6 +1422,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("cooked_rabbit", fn() => Items::COOKED_RABBIT());
 		$result->register("cooked_salmon", fn() => Items::COOKED_SALMON());
 		$result->register("cookie", fn() => Items::COOKIE());
+		$result->register("cushion", fn() => Items::CUSHION());
 		$result->register("copper_axe", fn() => Items::COPPER_AXE());
 		$result->register("copper_boots", fn() => Items::COPPER_BOOTS());
 		$result->register("copper_chestplate", fn() => Items::COPPER_CHESTPLATE());

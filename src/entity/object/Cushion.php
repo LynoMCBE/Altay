@@ -27,6 +27,7 @@ namespace pocketmine\entity\object;
 
 use pocketmine\block\utils\DyeColor;
 use pocketmine\block\utils\SupportType;
+use pocketmine\block\VanillaBlocks;
 use pocketmine\data\bedrock\DyeColorIdMap;
 use pocketmine\entity\Entity;
 use pocketmine\entity\EntitySizeInfo;
@@ -41,6 +42,8 @@ use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataCollection;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\player\Player;
+use pocketmine\world\particle\BlockBreakParticle;
+use pocketmine\world\sound\CushionBreakSound;
 
 class Cushion extends Living{
 	private const TAG_COLOR = "Color"; //TAG_Byte
@@ -101,6 +104,13 @@ class Cushion extends Living{
 		}
 
 		return [VanillaItems::CUSHION()->setColor($this->color)];
+	}
+
+	protected function onDeath() : void{
+		parent::onDeath();
+
+		$this->broadcastSound(new CushionBreakSound($this->getId()));
+		$this->getWorld()->addParticle($this->location->add(0, 0.5, 0), new BlockBreakParticle(VanillaBlocks::WOOL()->setColor($this->color)));
 	}
 
 	public function onInteract(Player $player, Vector3 $clickPos) : bool{
