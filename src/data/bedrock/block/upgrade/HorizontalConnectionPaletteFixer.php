@@ -43,6 +43,10 @@ final class HorizontalConnectionPaletteFixer{
 	private function __construct(){
 	}
 
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
 	public static function fix(array $subChunks) : bool{
 		$registry = RuntimeBlockStateRegistry::getInstance();
 		if(!self::containsConnectable($subChunks, $registry)){
@@ -55,6 +59,10 @@ final class HorizontalConnectionPaletteFixer{
 		return true;
 	}
 
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
 	private static function containsConnectable(array $subChunks, RuntimeBlockStateRegistry $registry) : bool{
 		foreach($subChunks as $subChunk){
 			if($subChunk->isEmptyFast()){
@@ -72,6 +80,10 @@ final class HorizontalConnectionPaletteFixer{
 		return false;
 	}
 
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
 	private static function fixSubChunk(array $subChunks, int $subY, SubChunk $subChunk, RuntimeBlockStateRegistry $registry) : void{
 		if($subChunk->isEmptyFast()){
 			return;
@@ -101,8 +113,7 @@ final class HorizontalConnectionPaletteFixer{
 						continue;
 					}
 
-					$worldY = $yBase + $y;
-					$newId = self::recomputeStateId($block, $subChunks, $x, $worldY, $z, $registry);
+					$newId = self::recomputeStateId($block, $subChunks, $x, $yBase + $y, $z, $registry);
 					if($newId !== $oldId){
 						$subChunk->setBlockStateId($x, $y, $z, $newId);
 					}
@@ -111,6 +122,10 @@ final class HorizontalConnectionPaletteFixer{
 		}
 	}
 
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
 	private static function recomputeStateId(
 		Block $block,
 		array $subChunks,
@@ -119,19 +134,21 @@ final class HorizontalConnectionPaletteFixer{
 		int $z,
 		RuntimeBlockStateRegistry $registry
 	) : int{
-		$neighbor = fn(int $facing) : Block => self::neighbor($subChunks, $x, $y, $z, $facing, $registry);
-
 		if($block instanceof Stair){
-			$block->setShape(self::stairShape($block, $neighbor));
+			$block->setShape(self::stairShape($block, $subChunks, $x, $y, $z, $registry));
 		}elseif($block instanceof Fence || $block instanceof Thin){
 			foreach(Facing::HORIZONTAL as $facing){
-				$block->setConnected($facing, self::canConnect($block, $facing, $neighbor($facing)));
+				$block->setConnected($facing, self::canConnect($block, $facing, self::neighbor($subChunks, $x, $y, $z, $facing, $registry)));
 			}
 		}
 
 		return $block->getStateId();
 	}
 
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
 	private static function neighbor(
 		array $subChunks,
 		int $x,
@@ -156,21 +173,36 @@ final class HorizontalConnectionPaletteFixer{
 		return $registry->fromStateId($sub->getBlockStateId($nx, $ny & SubChunk::COORD_MASK, $nz));
 	}
 
-	private static function stairShape(Stair $stair, \Closure $neighbor) : StairShape{
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
+	private static function stairShape(Stair $stair, array $subChunks, int $x, int $y, int $z, RuntimeBlockStateRegistry $registry) : StairShape{
 		$clockwise = Facing::rotateY($stair->getFacing(), true);
-		$backFacing = self::possibleCornerFacing($stair, $neighbor, false);
+		$backFacing = self::possibleCornerFacing($stair, $subChunks, $x, $y, $z, $registry, false);
 		if($backFacing !== null){
 			return $backFacing === $clockwise ? StairShape::OUTER_RIGHT : StairShape::OUTER_LEFT;
 		}
-		$frontFacing = self::possibleCornerFacing($stair, $neighbor, true);
+		$frontFacing = self::possibleCornerFacing($stair, $subChunks, $x, $y, $z, $registry, true);
 		if($frontFacing !== null){
 			return $frontFacing === $clockwise ? StairShape::INNER_RIGHT : StairShape::INNER_LEFT;
 		}
 		return StairShape::STRAIGHT;
 	}
 
-	private static function possibleCornerFacing(Stair $stair, \Closure $neighbor, bool $oppositeFacing) : ?int{
-		$side = $neighbor($oppositeFacing ? Facing::opposite($stair->getFacing()) : $stair->getFacing());
+	/**
+	 * @param SubChunk[] $subChunks
+	 * @phpstan-param array<int, SubChunk> $subChunks
+	 */
+	private static function possibleCornerFacing(Stair $stair, array $subChunks, int $x, int $y, int $z, RuntimeBlockStateRegistry $registry, bool $oppositeFacing) : ?int{
+		$side = self::neighbor(
+			$subChunks,
+			$x,
+			$y,
+			$z,
+			$oppositeFacing ? Facing::opposite($stair->getFacing()) : $stair->getFacing(),
+			$registry
+		);
 		return (
 			$side instanceof Stair &&
 			$side->isUpsideDown() === $stair->isUpsideDown() &&
