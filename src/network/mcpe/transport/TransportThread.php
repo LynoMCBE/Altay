@@ -34,8 +34,9 @@ use pocketmine\snooze\SleeperHandlerEntry;
 use pocketmine\thread\log\ThreadSafeLogger;
 use pocketmine\thread\NonThreadSafeValue;
 use pocketmine\thread\Thread;
+use pocketmine\GarbageCollectorManager;
 use pocketmine\thread\ThreadCrashException;
-use function gc_disable;
+use pocketmine\timings\Timings;
 use function hrtime;
 use function ini_set;
 use function intdiv;
@@ -82,11 +83,15 @@ class TransportThread extends Thread{
 	}
 
 	protected function onRun() : void{
-		gc_disable();
-
 		ini_set("display_errors", '1');
 		ini_set("display_startup_errors", '1');
 		\GlobalLogger::set($this->logger);
+
+		Timings::init();
+		//a peer connection is a web of objects that point back at each other - the event handlers a
+		//connection registers close over the connection itself - so nothing here is freed by
+		//refcounting alone. Without this the thread grows by every connection it has ever served.
+		$cycleGcManager = new GarbageCollectorManager($this->logger, null);
 
 		$transport = $this->factory->deserialize()->make($this->logger);
 		$transport->start(new TransportToMainThreadMessageSender(
@@ -113,6 +118,7 @@ class TransportThread extends Thread{
 				break;
 			}
 			$transport->tick();
+			$cycleGcManager->maybeCollectCycles();
 
 			if(!$selfPacing){
 				$elapsedMicros = intdiv(hrtime(true) - $start, 1000);

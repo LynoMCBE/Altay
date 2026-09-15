@@ -65,7 +65,7 @@ memory:
 
 network:
   # Network transport, just to note that RakNet is deprecated
-  # Options: nethernet (recommended), raknet or both
+  # Options: nethernet (recommended) or raknet
   transport: nethernet
   #Settings for the NetherNet transport.
   nethernet:
@@ -90,6 +90,12 @@ network:
     #usually has several no player can reach, such as container bridges. Leave empty to use the
     #address the server is bound to, or every address when it is bound to all of them.
     interfaces: []
+    #How many connections may be in the middle of being set up at once, and how many of those a
+    #single address may hold. Each one costs a handshake before anyone has proved who they are, so
+    #these are what stops one peer from spending the server's time. Raise the per-address figure
+    #above the player count when everyone arrives through one address, such as behind a proxy.
+    max-pending-negotiations: 64
+    max-negotiations-per-address: 32
     #Of the addresses gathered above, the ones players joining by address can actually reach. The
     #others are kept out of the answer, so those players do not spend a connectivity check on each.
     #Leave empty to offer every gathered address.

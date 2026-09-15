@@ -99,6 +99,8 @@ final class YmlServerProperties{
 	public const NETWORK_NETHERNET_ICE_USERNAME = 'network.nethernet.ice-username';
 	public const NETWORK_NETHERNET_IDENTITY_DOMAIN = 'network.nethernet.identity-domain';
 	public const NETWORK_NETHERNET_INTERFACES = 'network.nethernet.interfaces';
+	public const NETWORK_NETHERNET_MAX_NEGOTIATIONS_PER_ADDRESS = 'network.nethernet.max-negotiations-per-address';
+	public const NETWORK_NETHERNET_MAX_PENDING_NEGOTIATIONS = 'network.nethernet.max-pending-negotiations';
 	public const NETWORK_NETHERNET_RELAY_ONLY = 'network.nethernet.relay-only';
 	public const NETWORK_NETHERNET_REQUIRE_IDENTITY = 'network.nethernet.require-identity';
 	public const NETWORK_NETHERNET_SIGNALLING_PORT = 'network.nethernet.signalling-port';

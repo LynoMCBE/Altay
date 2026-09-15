@@ -1376,6 +1376,19 @@ class Server {
 	}
 
 	/**
+	 * A cap on what unauthenticated peers may ask of the transport. Zero or less would leave nobody
+	 * able to connect at all, so an unusable value falls back to the default.
+	 */
+	private function getNetherNetLimit(string $property, int $default) : int{
+		$configured = $this->configGroup->getPropertyInt($property, $default);
+		if($configured < 1){
+			$this->logger->warning("Ignoring $property, it must be at least 1");
+			return $default;
+		}
+		return $configured;
+	}
+
+	/**
 	 * The name shown to a player the first time their client is asked to trust this server. It is
 	 * display text rather than part of the identity, so it can change without re-prompting anyone.
 	 */
@@ -1395,12 +1408,12 @@ class Server {
 	) : bool{
 		$prettyIp = $ipV6 ? "[$ip]" : $ip;
 		$transportMode = strtolower($this->configGroup->getPropertyString(Yml::NETWORK_TRANSPORT, "nethernet"));
-		if($transportMode !== "raknet" && $transportMode !== "nethernet" && $transportMode !== "both"){
+		if($transportMode !== "raknet" && $transportMode !== "nethernet"){
 			$this->logger->warning("Unknown network transport \"$transportMode\", defaulting to \"nethernet\"");
 			$transportMode = "nethernet";
 		}
-		$useRakNet = $transportMode === "raknet" || $transportMode === "both";
-		$useNetherNet = ($transportMode === "nethernet" || $transportMode === "both") && !$ipV6; //nethernet discovery uses a single broadcast socket, a separate IPv6 bind is not needed
+		$useRakNet = $transportMode === "raknet";
+		$useNetherNet = $transportMode === "nethernet" && !$ipV6; //nethernet discovery uses a single broadcast socket, a separate IPv6 bind is not needed
 		if($useRakNet && !$ipV6){ //only warn once, on the primary IPv4 pass
 			$this->logger->warning("----------------------------------------");
 			$this->logger->warning("The RakNet transport is deprecated and may be removed in a future release.");
@@ -1452,7 +1465,9 @@ class Server {
 						$this->getNetherNetAdvertisedAddresses(),
 						$this->getNetherNetUdpPortRange(),
 						$this->getNetherNetTlsPath(Yml::NETWORK_NETHERNET_TLS_CERTIFICATE),
-						$this->getNetherNetTlsPath(Yml::NETWORK_NETHERNET_TLS_KEY)
+						$this->getNetherNetTlsPath(Yml::NETWORK_NETHERNET_TLS_KEY),
+						$this->getNetherNetLimit(Yml::NETWORK_NETHERNET_MAX_PENDING_NEGOTIATIONS, 64),
+						$this->getNetherNetLimit(Yml::NETWORK_NETHERNET_MAX_NEGOTIATIONS_PER_ADDRESS, 32)
 					),
 					$this->tickSleeper
 				);

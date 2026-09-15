@@ -66,7 +66,9 @@ final class NetherNetTransportFactory implements TransportFactory{
 		private array $advertisedAddresses = [],
 		private ?array $udpPortRange = null,
 		private ?string $tlsCertificatePath = null,
-		private ?string $tlsKeyPath = null
+		private ?string $tlsKeyPath = null,
+		private int $maxPendingNegotiations = 64,
+		private int $maxNegotiationsPerAddress = 32
 	){}
 
 	public function getName() : string{
@@ -89,7 +91,7 @@ final class NetherNetTransportFactory implements TransportFactory{
 	}
 
 	public function make(\Logger $logger) : Transport{
-		return new NetherNetTransport(
+		$transport = new NetherNetTransport(
 			$logger,
 			$this->networkId,
 			new ServerData(
@@ -127,5 +129,7 @@ final class NetherNetTransportFactory implements TransportFactory{
 			tokenTrust: TokenTrust::ANY,
 			endpointTokenTrust: $this->requireEndpointIdentity ? TokenTrust::MINECRAFT_AUTH : TokenTrust::ANY
 		);
+		$transport->setNegotiationLimits($this->maxPendingNegotiations, $this->maxNegotiationsPerAddress);
+		return $transport;
 	}
 }
