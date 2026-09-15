@@ -311,16 +311,16 @@
         },
         {
             "name": "altayofficial/webrtc",
-            "version": "1.6.4",
+            "version": "1.6.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/altayofficial/webrtc.git",
-                "reference": "70408207f9b8d10ade3b14a412fe657c080c3032"
+                "reference": "0f8557ee74d40c2d5c3cc34eac9c0f1d93155fa7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/altayofficial/webrtc/zipball/70408207f9b8d10ade3b14a412fe657c080c3032",
-                "reference": "70408207f9b8d10ade3b14a412fe657c080c3032",
+                "url": "https://api.github.com/repos/altayofficial/webrtc/zipball/0f8557ee74d40c2d5c3cc34eac9c0f1d93155fa7",
+                "reference": "0f8557ee74d40c2d5c3cc34eac9c0f1d93155fa7",
                 "shasum": ""
             },
             "require": {
@@ -381,10 +381,10 @@
             ],
             "description": "A WebRTC library designed special for Altay family",
             "support": {
-                "source": "https://github.com/altayofficial/webrtc/tree/1.6.4",
+                "source": "https://github.com/altayofficial/webrtc/tree/1.6.5",
                 "issues": "https://github.com/altayofficial/webrtc/issues"
             },
-            "time": "2026-09-15T15:34:07+00:00"
+            "time": "2026-09-15T15:58:48+00:00"
         },
         {
             "name": "altayofficial/worldupgraderschemas",
