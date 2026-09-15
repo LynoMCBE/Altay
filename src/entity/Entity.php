@@ -1620,6 +1620,10 @@ abstract class Entity{
 		$this->ySize = 0;
 		$pos = $ev->getTo();
 
+		//Teleporting independently of a vehicle must break the link first. In particular, leaving a player linked to a
+		//vehicle in another world would cause all of their movement input at the destination to be ignored.
+		$this->vehicle?->removePassenger($this);
+
 		$this->setMotion(new Vector3(0, 0, 0));
 		if($this->setPositionAndRotation($pos, $yaw ?? $this->location->yaw, $pitch ?? $this->location->pitch)){
 			$this->resetFallDistance();
