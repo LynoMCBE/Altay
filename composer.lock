@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4e77d301ba26f8a41eb7839df44b64d5",
+    "content-hash": "fbc8ba9bac780a7b69bc299785fd5bb7",
     "packages": [
         {
             "name": "adhocore/json-comment",
@@ -71,12 +71,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/altayofficial/BedrockData.git",
-                "reference": "8bff2297f81ff60496e87096aa28ae28e95a4f63"
+                "reference": "1210998008ad866b8176042c82716956f8fe86ab"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/altayofficial/BedrockData/zipball/8bff2297f81ff60496e87096aa28ae28e95a4f63",
-                "reference": "8bff2297f81ff60496e87096aa28ae28e95a4f63",
+                "url": "https://api.github.com/repos/altayofficial/BedrockData/zipball/1210998008ad866b8176042c82716956f8fe86ab",
+                "reference": "1210998008ad866b8176042c82716956f8fe86ab",
                 "shasum": ""
             },
             "type": "library",
@@ -87,7 +87,7 @@
             "support": {
                 "source": "https://github.com/altayofficial/BedrockData/tree/bedrock-1.26.50"
             },
-            "time": "2026-09-02T14:52:22+00:00"
+            "time": "2026-09-15T16:13:24+00:00"
         },
         {
             "name": "altayofficial/bedrock-protocol",
@@ -95,12 +95,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/altayofficial/BedrockProtocol.git",
-                "reference": "4ed21c3f4e4e35a466558d5f12e0b49f174ec397"
+                "reference": "f6f735a41e46c498b52b2820ca28b76322213627"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/altayofficial/BedrockProtocol/zipball/4ed21c3f4e4e35a466558d5f12e0b49f174ec397",
-                "reference": "4ed21c3f4e4e35a466558d5f12e0b49f174ec397",
+                "url": "https://api.github.com/repos/altayofficial/BedrockProtocol/zipball/f6f735a41e46c498b52b2820ca28b76322213627",
+                "reference": "f6f735a41e46c498b52b2820ca28b76322213627",
                 "shasum": ""
             },
             "require": {
@@ -144,7 +144,7 @@
                 "source": "https://github.com/altayofficial/BedrockProtocol/tree/bedrock-1.26.50",
                 "issues": "https://github.com/altayofficial/BedrockProtocol/issues"
             },
-            "time": "2026-09-02T13:04:16+00:00"
+            "time": "2026-09-15T16:11:30+00:00"
         },
         {
             "name": "altayofficial/dtls",
@@ -388,16 +388,16 @@
         },
         {
             "name": "altayofficial/worldupgraderschemas",
-            "version": "dev-bedrock-1.26.20",
+            "version": "dev-bedrock-1.26.50",
             "source": {
                 "type": "git",
                 "url": "https://github.com/altayofficial/WorldUpgraderSchemas.git",
-                "reference": "bc7c8ed1eef45a12c04fe7f8c115bafb3e133ff8"
+                "reference": "82967e9d9dde4762eb5a629273e9dbab18cd9b61"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/altayofficial/WorldUpgraderSchemas/zipball/bc7c8ed1eef45a12c04fe7f8c115bafb3e133ff8",
-                "reference": "bc7c8ed1eef45a12c04fe7f8c115bafb3e133ff8",
+                "url": "https://api.github.com/repos/altayofficial/WorldUpgraderSchemas/zipball/82967e9d9dde4762eb5a629273e9dbab18cd9b61",
+                "reference": "82967e9d9dde4762eb5a629273e9dbab18cd9b61",
                 "shasum": ""
             },
             "type": "library",
@@ -406,10 +406,10 @@
             ],
             "description": "JSON schemas for upgrading worlds",
             "support": {
-                "source": "https://github.com/altayofficial/WorldUpgraderSchemas/tree/1.17.0+bedrock-1.26.20",
+                "source": "https://github.com/altayofficial/WorldUpgraderSchemas/tree/bedrock-1.26.50",
                 "issues": "https://github.com/altayofficial/WorldUpgraderSchemas/issues"
             },
-            "time": "2026-07-10T19:21:13+00:00"
+            "time": "2026-09-02T14:14:23+00:00"
         },
         {
             "name": "brick/math",
