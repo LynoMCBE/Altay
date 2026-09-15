@@ -41,7 +41,8 @@ final class BoolProperty implements Property{
 		private string $name,
 		private \Closure $getter,
 		private \Closure $setter,
-		private bool $inverted = false //we don't *need* this, but it avoids accidentally forgetting a ! in the getter/setter closures (and makes it analysable)
+		private bool $inverted = false, //we don't *need* this, but it avoids accidentally forgetting a ! in the getter/setter closures (and makes it analysable)
+		private ?bool $missingDefault = null
 	){}
 
 	/**
@@ -57,7 +58,7 @@ final class BoolProperty implements Property{
 	 * @phpstan-param TBlock $block
 	 */
 	public function deserialize(object $block, BlockStateReader $in) : void{
-		$raw = $in->readBool($this->name);
+		$raw = $in->readBool($this->name, $this->missingDefault);
 		$value = $raw !== $this->inverted;
 		($this->setter)($block, $value);
 	}

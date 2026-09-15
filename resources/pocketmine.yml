@@ -64,6 +64,56 @@ memory:
     chunk-radius: 4
 
 network:
+  # Network transport, just to note that RakNet is deprecated
+  # Options: nethernet (recommended) or raknet
+  transport: nethernet
+  #Settings for the NetherNet transport.
+  nethernet:
+    #Name shown to players the first time their client is asked to trust this server's identity.
+    #Leave empty to use the MOTD.
+    identity-domain: ""
+    #Reject connections that do not carry a signed identity assertion. That signature is what ties a
+    #connection to the account it logs in with, so "auto" requires it from players joining by address
+    #whenever xbox-auth is on, and never from players who found the server on the local network,
+    #where clients do not sign. true or false apply to both. If players cannot join, the debug log
+    #names every connection that arrived without one.
+    require-identity: auto
+    #STUN and TURN servers used to find a path to players who cannot be reached directly.
+    #Host candidates are enough on a local network, so this can be left empty there.
+    ice-servers: []
+    #Credentials for the TURN servers above, if they ask for any.
+    ice-username: ""
+    ice-password: ""
+    #Only accept relayed candidates, keeping the server address away from players. Needs a TURN server.
+    relay-only: false
+    #Local addresses to offer players a path on. Each one costs a socket per player, and a machine
+    #usually has several no player can reach, such as container bridges. Leave empty to use the
+    #address the server is bound to, or every address when it is bound to all of them.
+    interfaces: []
+    #How many connections may be in the middle of being set up at once, and how many of those a
+    #single address may hold. Each one costs a handshake before anyone has proved who they are, so
+    #these are what stops one peer from spending the server's time. Raise the per-address figure
+    #above the player count when everyone arrives through one address, such as behind a proxy.
+    max-pending-negotiations: 64
+    max-negotiations-per-address: 32
+    #Of the addresses gathered above, the ones players joining by address can actually reach. The
+    #others are kept out of the answer, so those players do not spend a connectivity check on each.
+    #Leave empty to offer every gathered address.
+    advertise-addresses: []
+    #TCP port the join endpoint listens on, which is where the Servers tab asks for the MOTD and
+    #posts its offer. Set to 0 to serve it on the server port.
+    signalling-port: 0
+    #UDP ports a player's media may use, written as "first-last" and at least 100 ports wide. Leave
+    #empty to let the system pick, which is fine until the ports have to be forwarded.
+    udp-port-range: ""
+    #Log what the ICE, DTLS and SCTP layers have to say about every connection, which is a line per
+    #datagram and only worth turning on while taking a failing connection apart. Needs debug level 2.
+    verbose-logging: false
+    #Certificate and private key to serve the join endpoint over HTTPS with, in PEM form. Clients
+    #open with a TLS handshake and fall back to plaintext when it is refused, so leaving these empty
+    #still works. Leave the key empty when the certificate file carries it.
+    tls-certificate: ""
+    tls-key: ""
   #Threshold for batching packets, in bytes. Only these packets will be compressed
   #Set to 0 to compress everything, -1 to disable.
   batch-threshold: 256
