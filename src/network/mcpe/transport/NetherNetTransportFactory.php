@@ -68,7 +68,8 @@ final class NetherNetTransportFactory implements TransportFactory{
 		private ?string $tlsCertificatePath = null,
 		private ?string $tlsKeyPath = null,
 		private int $maxPendingNegotiations = 64,
-		private int $maxNegotiationsPerAddress = 32
+		private int $maxNegotiationsPerAddress = 32,
+		private bool $verboseLogging = false
 	){}
 
 	public function getName() : string{
@@ -127,7 +128,8 @@ final class NetherNetTransportFactory implements TransportFactory{
 			//only the players who joined by address can be held to a token the service issued - and
 			//they are held to it exactly when they are held to carrying an assertion in the first place
 			tokenTrust: TokenTrust::ANY,
-			endpointTokenTrust: $this->requireEndpointIdentity ? TokenTrust::MINECRAFT_AUTH : TokenTrust::ANY
+			endpointTokenTrust: $this->requireEndpointIdentity ? TokenTrust::MINECRAFT_AUTH : TokenTrust::ANY,
+			verboseLogging: $this->verboseLogging
 		);
 		$transport->setNegotiationLimits($this->maxPendingNegotiations, $this->maxNegotiationsPerAddress);
 		return $transport;

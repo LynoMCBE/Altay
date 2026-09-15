@@ -106,6 +106,9 @@ network:
     #UDP ports a player's media may use, written as "first-last" and at least 100 ports wide. Leave
     #empty to let the system pick, which is fine until the ports have to be forwarded.
     udp-port-range: ""
+    #Log what the ICE, DTLS and SCTP layers have to say about every connection, which is a line per
+    #datagram and only worth turning on while taking a failing connection apart. Needs debug level 2.
+    verbose-logging: false
     #Certificate and private key to serve the join endpoint over HTTPS with, in PEM form. Clients
     #open with a TLS handshake and fall back to plaintext when it is refused, so leaving these empty
     #still works. Leave the key empty when the certificate file carries it.
