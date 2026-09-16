@@ -40,7 +40,8 @@ final class PaletteBlockDefinitions{
 	 *
 	 * @var array<string, array{string, int, bool}>
 	 */
-	public const ALL = [		'acacia_shelf' => ['minecraft:acacia_shelf', 32, true],
+	public const ALL = [
+		'acacia_shelf' => ['minecraft:acacia_shelf', 32, true],
 		'allow' => ['minecraft:allow', 1, true],
 		'bamboo_shelf' => ['minecraft:bamboo_shelf', 32, true],
 		'bee_nest' => ['minecraft:bee_nest', 24, true],
