@@ -30,7 +30,13 @@ use pocketmine\block\tile\Spawnable;
 use pocketmine\block\tile\Tile;
 use pocketmine\data\bedrock\block\convert\PaletteBlockStateRegistry;
 use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\item\Item;
+use pocketmine\math\Axis;
+use pocketmine\math\Facing;
+use pocketmine\math\Vector3;
+use pocketmine\player\Player;
 use pocketmine\utils\AssumptionFailedError;
+use pocketmine\world\BlockTransaction;
 use pocketmine\world\format\Chunk;
 use function str_replace;
 use function substr;
@@ -52,6 +58,26 @@ final class PaletteMappedBlock extends Block{
 	){
 		$name = ucwords(str_replace("_", " ", substr($vanillaId, 10)));
 		parent::__construct($idInfo, $name, new BlockTypeInfo(BlockBreakInfo::instant()));
+	}
+
+	public function place(BlockTransaction $tx, Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
+		if(Facing::axis($face) !== Axis::Y){
+			$direction = match($face){
+				Facing::NORTH => "north",
+				Facing::SOUTH => "south",
+				Facing::EAST => "east",
+				Facing::WEST => "west",
+				default => null
+			};
+			if($direction !== null){
+				$index = PaletteBlockStateRegistry::getCardinalDirectionStateIndex($this->vanillaId, $direction);
+				if($index !== null){
+					$this->paletteStateIndex = $index;
+				}
+			}
+		}
+
+		return parent::place($tx, $item, $blockReplace, $blockClicked, $face, $clickVector, $player);
 	}
 
 	public function describeBlockItemState(RuntimeDataDescriber $w) : void{

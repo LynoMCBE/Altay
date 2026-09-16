@@ -32,6 +32,7 @@ use pocketmine\block\VanillaBlocks;
 use pocketmine\data\bedrock\BedrockDataFiles;
 use pocketmine\data\bedrock\block\BlockStateData;
 use pocketmine\data\bedrock\block\BlockStateDeserializeException;
+use pocketmine\data\bedrock\block\BlockStateNames;
 use pocketmine\data\bedrock\PaletteBlockDefinitions;
 use pocketmine\network\mcpe\convert\BlockStateDictionary;
 use pocketmine\network\mcpe\convert\BlockStateDictionaryEntry;
@@ -41,6 +42,7 @@ use function count;
 use function is_array;
 use function is_float;
 use function is_int;
+use function is_string;
 use function json_decode;
 use function mb_strtoupper;
 use function round;
@@ -54,6 +56,8 @@ use function round;
 final class PaletteBlockStateRegistry{
 	/** @var array<string, list<BlockStateData>> */
 	private static array $states = [];
+	/** @var array<string, array<string, int>> map of block ID => cardinal direction => palette state index */
+	private static array $cardinalDirectionStateIndexes = [];
 	/** @var array<string, BlockBreakInfo> */
 	private static array $breakInfo = [];
 	/** @var array<string, float> */
@@ -116,6 +120,7 @@ final class PaletteBlockStateRegistry{
 		}
 
 		self::$states = [];
+		self::$cardinalDirectionStateIndexes = [];
 		self::loadBlockProperties($definitionsById);
 		$blocks = VanillaBlocks::getAll();
 		foreach(Utils::stringifyKeys(PaletteBlockDefinitions::ALL) as $registryName => [$id, $stateCount, $_fullyUnsupported]){
@@ -128,6 +133,12 @@ final class PaletteBlockStateRegistry{
 			}
 
 			self::$states[$registryName] = $statesById[$id];
+			foreach($statesById[$id] as $index => $state){
+				$direction = $state->getState(BlockStateNames::MC_CARDINAL_DIRECTION);
+				if($direction !== null && is_string($direction->getValue())){
+					self::$cardinalDirectionStateIndexes[$id][$direction->getValue()] ??= $index;
+				}
+			}
 			$lookup = $lookupsById[$id];
 			$original = $originalDeserializers[$id];
 			$reg->deserializer->map($id, static function(BlockStateReader $in) use ($id, $lookup, $original, $block) : Block{
@@ -193,6 +204,14 @@ final class PaletteBlockStateRegistry{
 	public static function getOpacity(string $id) : ?float{ return self::$opacity[$id] ?? null; }
 	public static function getFlameEncouragement(string $id) : ?int{ return self::$flameEncouragement[$id] ?? null; }
 	public static function getFlammability(string $id) : ?int{ return self::$flammability[$id] ?? null; }
+
+	/**
+	 * Returns the palette state index whose "minecraft:cardinal_direction" state has the given value, or null if the
+	 * block has no such state.
+	 */
+	public static function getCardinalDirectionStateIndex(string $id, string $direction) : ?int{
+		return self::$cardinalDirectionStateIndexes[$id][$direction] ?? null;
+	}
 
 	public static function getTileSaveId(string $id) : ?string{
 		if(str_ends_with($id, "_hanging_sign")){ return "HangingSign"; }
