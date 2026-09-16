@@ -30,6 +30,7 @@ use pocketmine\data\bedrock\BedrockDataFiles;
 use pocketmine\data\SavedDataLoadingException;
 use pocketmine\nbt\BigEndianNbtSerializer;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\mcpe\protocol\AvailableActorIdentifiersPacket;
@@ -42,6 +43,9 @@ use pocketmine\network\mcpe\protocol\types\SerializableVoxelShape;
 use pocketmine\network\mcpe\protocol\VoxelShapesPacket;
 use pocketmine\utils\Filesystem;
 use pocketmine\utils\SingletonTrait;
+use pocketmine\utils\Utils;
+use function array_values;
+use function serialize;
 use function zlib_decode;
 
 class StaticPacketCache{
@@ -124,19 +128,65 @@ class StaticPacketCache{
 		$blocks = self::loadCompoundFromFile($filePath)->getListTag("blocks") ??
 			throw new SavedDataLoadingException("$filePath missing blocks");
 
+		//The client needs the possible values of every block state in order to register the block and
+		//compute its network runtime IDs. block_definitions.nbt only carries the rendering components,
+		//so the state definitions are aggregated from the block palette and merged in here.
+		$stateDefinitions = self::loadBlockStateDefinitions(BedrockDataFiles::BLOCK_PALETTE_NBT);
+
 		$definitions = [];
 		foreach($blocks as $blockTag){
 			if(!($blockTag instanceof CompoundTag)){
 				throw new SavedDataLoadingException("blocks should only contain compounds");
 			}
-			$definitions[] = new BlockPaletteEntry(
-				$blockTag->getString("name"),
-				new CacheableNbt($blockTag->getCompoundTag("properties") ??
-					throw new SavedDataLoadingException("Block definition is missing properties"))
-			);
+			$name = $blockTag->getString("name");
+			$properties = $blockTag->getCompoundTag("properties") ??
+				throw new SavedDataLoadingException("Block definition is missing properties");
+			if(isset($stateDefinitions[$name])){
+				$properties->setTag("states", $stateDefinitions[$name]);
+			}
+			$definitions[] = new BlockPaletteEntry($name, new CacheableNbt($properties));
 		}
 
 		return $definitions;
+	}
+
+	/**
+	 * Aggregates the possible values of each block state from a bedrock-network-data block_palette.nbt,
+	 * keyed by block name, in the format expected by the client's block definition ("states" map of
+	 * state name to the list of its possible values).
+	 *
+	 * @return array<string, CompoundTag>
+	 */
+	private static function loadBlockStateDefinitions(string $filePath) : array{
+		$blocks = self::loadCompoundFromFile($filePath)->getListTag("blocks") ??
+			throw new SavedDataLoadingException("$filePath missing blocks");
+
+		$collected = [];
+		foreach($blocks as $blockTag){
+			if(!($blockTag instanceof CompoundTag)){
+				continue;
+			}
+			$name = $blockTag->getString("name");
+			$statesTag = $blockTag->getCompoundTag("states");
+			if($statesTag === null){
+				continue;
+			}
+			foreach(Utils::stringifyKeys($statesTag->getValue()) as $stateName => $value){
+				$key = $value->getType() . ":" . serialize($value->getValue());
+				$collected[$name][$stateName][$key] = $value;
+			}
+		}
+
+		$result = [];
+		foreach(Utils::stringifyKeys($collected) as $name => $states){
+			$tag = CompoundTag::create();
+			foreach(Utils::stringifyKeys($states) as $stateName => $values){
+				$tag->setTag($stateName, new ListTag(array_values($values)));
+			}
+			$result[$name] = $tag;
+		}
+
+		return $result;
 	}
 
 	/**
