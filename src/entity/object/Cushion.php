@@ -128,7 +128,13 @@ class Cushion extends Living{
 	}
 
 	protected function entityBaseTick(int $tickDiff = 1) : bool{
-		$hasUpdate = parent::entityBaseTick($tickDiff);
+		//a cushion is a static seat: it doesn't suffocate, drown, wear armour or tick effects, so we skip
+		//Living::entityBaseTick() entirely and only do the work that actually matters for it.
+		$hasUpdate = Entity::entityBaseTick($tickDiff);
+
+		if($this->attackTime > 0){
+			$this->attackTime -= $tickDiff;
+		}
 
 		if($this->ticksLived % self::SUPPORT_CHECK_PERIOD < $tickDiff && !$this->hasSupportingBlock()){
 			//a cushion never falls, it breaks as soon as the block holding it up is gone
@@ -137,6 +143,18 @@ class Cushion extends Living{
 		}
 
 		return $hasUpdate;
+	}
+
+	public function hasMovementUpdate() : bool{
+		//a cushion has no gravity and full drag, so it never moves on its own and never needs to settle on the ground
+		return $this->forceMovementUpdate ||
+			(float)$this->motion->x !== 0.0 ||
+			(float)$this->motion->y !== 0.0 ||
+			(float)$this->motion->z !== 0.0;
+	}
+
+	protected function checkBlockIntersections() : void{
+		//a cushion is immobile, so blocks around it can never impart velocity or state to it
 	}
 
 	public function hasSupportingBlock() : bool{
