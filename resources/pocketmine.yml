@@ -33,12 +33,13 @@ memory:
 
   #Main thread hard memory limit in megabytes. Set to 0 to disable
   #This will stop the server when the limit is surpassed
-  main-hard-limit: 1024
+  main-hard-limit: 2048
 
   #AsyncWorker threads' hard memory limit in megabytes. Set to 0 to disable
   #This will crash the task currently executing on the worker if the task exceeds the limit
   #NOTE: THIS LIMIT APPLIES PER WORKER, NOT TO THE WHOLE PROCESS.
-  async-worker-hard-limit: 256
+  #Chunk serialization and world generation tasks can easily exceed 256MB on large view distances.
+  async-worker-hard-limit: 512
 
   #Period in ticks to check memory (default 1 second)
   check-rate: 20
@@ -120,10 +121,13 @@ network:
   #Compression level used when sending batched packets. Higher = more CPU, less bandwidth usage
   compression-level: 6
   #Use AsyncTasks for compression during the main game session. Increases latency, but may reduce main thread load
-  async-compression: false
+  #This is strongly recommended on servers with many players: zlib compression is CPU-heavy and the AsyncTask
+  #round-trip latency is negligible compared to the main-thread savings.
+  async-compression: true
   #Threshold for async compression, in bytes. Only packets larger than this will be compressed asynchronously
-  #Due to large overhead of AsyncTask, async compression isn't worth it except for large packets
-  async-compression-threshold: 10000
+  #Set this low enough that the common per-player game batches (movement, entity, block broadcasts) are offloaded
+  #off the main thread.
+  async-compression-threshold: 2048
   #Experimental. Use UPnP to automatically port forward
   upnp-forwarding: false
   #Maximum size in bytes of packets sent over the network (default 1492 bytes). Packets larger than this will be

@@ -26,6 +26,12 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 use PHPUnit\Framework\TestCase;
+use pocketmine\block\VanillaBlocks;
+use pocketmine\data\bedrock\PaletteBlockDefinitions;
+use pocketmine\utils\Utils;
+use pocketmine\world\format\io\GlobalBlockStateHandlers;
+use function strtoupper;
+use function substr;
 
 class StringToItemParserTest extends TestCase{
 
@@ -78,5 +84,23 @@ class StringToItemParserTest extends TestCase{
 
 		self::assertCount(1, $parser->lookupAliases($item2));
 		self::assertContains("alias2", $parser->lookupAliases($item2));
+	}
+
+	public function testEveryFullyUnsupportedPaletteBlockHasAnAlias() : void{
+		$parser = StringToItemParser::getInstance();
+		$blocks = VanillaBlocks::getAll();
+		foreach(Utils::stringifyKeys(PaletteBlockDefinitions::ALL) as $registryName => [$id, $_stateCount, $fullyUnsupported]){
+			if(!$fullyUnsupported){
+				continue;
+			}
+			$item = $parser->parse(substr($id, 10));
+			self::assertInstanceOf(ItemBlock::class, $item, "Missing block item alias for $id");
+			self::assertSame($blocks[strtoupper($registryName)]->getTypeId(), $item->getBlock()->getTypeId(), "Block item alias does not use its own native block type");
+			self::assertSame(
+				$id,
+				GlobalBlockStateHandlers::getSerializer()->serializeBlock($item->getBlock())->getName(),
+				"Block item alias resolves to the wrong block"
+			);
+		}
 	}
 }

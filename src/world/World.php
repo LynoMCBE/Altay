@@ -1455,6 +1455,9 @@ class World implements ChunkManager{
 		try{
 			foreach($this->chunks as $chunkHash => $chunk){
 				self::getXZ($chunkHash, $chunkX, $chunkZ);
+				if(!$this->isChunkDirty($chunk, $chunkX, $chunkZ)){
+					continue;
+				}
 				$this->provider->saveChunk($chunkX, $chunkZ, new ChunkData(
 					$chunk->getSubChunks(),
 					$chunk->isPopulated(),
@@ -1466,6 +1469,18 @@ class World implements ChunkManager{
 		}finally{
 			$this->timings->syncChunkSave->stopTiming();
 		}
+	}
+
+	/**
+	 * Returns whether the chunk has any changes which need to be written to disk. Chunks whose terrain, entities and
+	 * tiles are all unchanged (or entirely absent) don't need to be re-saved.
+	 */
+	private function isChunkDirty(Chunk $chunk, int $chunkX, int $chunkZ) : bool{
+		if($chunk->isTerrainDirty()){
+			return true;
+		}
+
+		return count($this->getChunkEntities($chunkX, $chunkZ)) > 0 || count($chunk->getTiles()) > 0;
 	}
 
 	/**
@@ -3169,7 +3184,7 @@ class World implements ChunkManager{
 				}
 			}
 
-			if($trySave && $this->getAutoSave()){
+			if($trySave && $this->getAutoSave() && $this->isChunkDirty($chunk, $x, $z)){
 				$this->timings->syncChunkSave->startTiming();
 				try{
 					$this->provider->saveChunk($x, $z, new ChunkData(

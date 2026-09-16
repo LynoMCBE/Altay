@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace pocketmine;
 
 use pocketmine\utils\Config;
+use pocketmine\utils\Utils;
 use function array_key_exists;
 use function getopt;
 use function is_bool;
@@ -40,14 +41,40 @@ final class ServerConfigGroup{
 	 */
 	private array $propertyCache = [];
 
+	/**
+	 * @var array<string, array<string, string|false>>
+	 * @phpstan-var array<string, array<string, string|false>>
+	 */
+	private array $cliOptionsCache = [];
+
 	public function __construct(
 		private Config $pocketmineYml,
 		private Config $serverProperties
 	){}
 
+	/**
+	 * Returns the CLI options parsed for the given variable. The command line
+	 * arguments never change at runtime, so they only need to be parsed once per
+	 * variable instead of on every access.
+	 *
+	 * @return array<string, string|false>
+	 */
+	private function getCliOptions(string $variable) : array{
+		if(!isset($this->cliOptionsCache[$variable])){
+			$opts = [];
+			$raw = getopt("", ["$variable::"]);
+			foreach(Utils::stringifyKeys($raw === false ? [] : $raw) as $key => $value){
+				$opts[$key] = is_string($value) ? $value : false;
+			}
+			$this->cliOptionsCache[$variable] = $opts;
+		}
+
+		return $this->cliOptionsCache[$variable];
+	}
+
 	public function getProperty(string $variable, mixed $defaultValue = null) : mixed{
 		if(!array_key_exists($variable, $this->propertyCache)){
-			$v = getopt("", ["$variable::"]);
+			$v = $this->getCliOptions($variable);
 			if(isset($v[$variable])){
 				$this->propertyCache[$variable] = $v[$variable];
 			}else{
@@ -71,7 +98,7 @@ final class ServerConfigGroup{
 	}
 
 	public function getConfigString(string $variable, string $defaultValue = "") : string{
-		$v = getopt("", ["$variable::"]);
+		$v = $this->getCliOptions($variable);
 		if(isset($v[$variable])){
 			return (string) $v[$variable];
 		}
@@ -84,7 +111,7 @@ final class ServerConfigGroup{
 	}
 
 	public function getConfigInt(string $variable, int $defaultValue = 0) : int{
-		$v = getopt("", ["$variable::"]);
+		$v = $this->getCliOptions($variable);
 		if(isset($v[$variable])){
 			return (int) $v[$variable];
 		}
@@ -97,7 +124,7 @@ final class ServerConfigGroup{
 	}
 
 	public function getConfigBool(string $variable, bool $defaultValue = false) : bool{
-		$v = getopt("", ["$variable::"]);
+		$v = $this->getCliOptions($variable);
 		if(isset($v[$variable])){
 			$value = $v[$variable];
 		}else{

@@ -1644,7 +1644,7 @@ class Server {
 	 * by the compressor. This means that the payload will be wrapped with the appropriate header and footer, but not
 	 * actually compressed.
 	 *
-	 * If the buffer is larger than the async-compression-threshold (usually 10,000), the buffer may be compressed in
+	 * If the buffer is larger than the async-compression-threshold (usually 2,048), the buffer may be compressed in
 	 * a separate thread (if available).
 	 *
 	 * @param bool|null $sync Compression on the main thread (true) or workers (false). Default is automatic (null).

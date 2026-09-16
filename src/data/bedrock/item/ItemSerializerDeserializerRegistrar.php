@@ -161,9 +161,7 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Block(Ids::NETHER_WART, Blocks::NETHER_WART());
 		$this->map1to1Block(Ids::PALE_OAK_DOOR, Blocks::PALE_OAK_DOOR());
 		$this->map1to1Block(Ids::POPLAR_DOOR, Blocks::POPLAR_DOOR());
-		$this->map1to1Block(Ids::RED_SHRUB, Blocks::RED_SHRUB());
 		$this->map1to1Block(Ids::REPEATER, Blocks::REDSTONE_REPEATER());
-		$this->map1to1Block(Ids::SHELF_MUSHROOM, Blocks::SHELF_MUSHROOM());
 		$this->map1to1Block(Ids::SOUL_CAMPFIRE, Blocks::SOUL_CAMPFIRE());
 		$this->map1to1Block(Ids::SPRUCE_DOOR, Blocks::SPRUCE_DOOR());
 		$this->map1to1Block(Ids::STRAW_BED, Blocks::STRAW_BED());

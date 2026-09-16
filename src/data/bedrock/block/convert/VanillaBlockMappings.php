@@ -159,6 +159,7 @@ final class VanillaBlockMappings{
 		self::register1to1CustomMappings($reg, $commonProperties);
 
 		self::registerSplitMappings($reg, $commonProperties);
+		PaletteBlockStateRegistry::register($reg);
 	}
 
 	private static function registerSimpleIdOnlyMappings(BlockSerializerDeserializerRegistrar $reg) : void{

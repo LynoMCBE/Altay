@@ -82,6 +82,7 @@ final class TileFactory{
 		$this->register(MobHead::class, ["Skull", "minecraft:skull"]);
 		$this->register(GlowingItemFrame::class, ["GlowItemFrame"]);
 		$this->register(HangingSign::class, ["HangingSign", "minecraft:hanging_sign"]);
+		$this->register(Passthrough::class, ["Unknown"]);
 
 		//TODO: ChalkboardBlock
 		//TODO: ChemistryTable
@@ -131,10 +132,10 @@ final class TileFactory{
 	public function createFromData(World $world, CompoundTag $nbt) : ?Tile{
 		try{
 			$type = $nbt->getString(Tile::TAG_ID, "");
-			if(!isset($this->knownTiles[$type])){
+			if($type === ""){
 				return null;
 			}
-			$class = $this->knownTiles[$type];
+			$class = $this->knownTiles[$type] ?? Passthrough::class;
 			assert(is_a($class, Tile::class, true));
 			/**
 			 * @var Tile $tile
