@@ -56,6 +56,13 @@ final class BlockStateDictionary{
 	private array $stateDataToStateIdLookup = [];
 
 	/**
+	 * @var \WeakMap<BlockStateData, int>
+	 * Caches the result of the state-property NBT encoding for blockstate data objects which are reused (e.g. the
+	 * per-state-id BlockStateData instances returned by the block state serializer).
+	 */
+	private \WeakMap $stateDataToStateIdEncodeCache;
+
+	/**
 	 * @var int[][]|null
 	 * @phpstan-var array<string, array<int, int>|int>|null
 	 */
@@ -69,6 +76,8 @@ final class BlockStateDictionary{
 	public function __construct(
 		private array $states
 	){
+		$this->stateDataToStateIdEncodeCache = new \WeakMap();
+
 		$table = [];
 		foreach($this->states as $stateId => $stateNbt){
 			$table[$stateNbt->getStateName()][$stateNbt->getRawStateProperties()] = $stateId;
@@ -126,8 +135,24 @@ final class BlockStateDictionary{
 		return match(true){
 			$lookup === null => null,
 			is_int($lookup) => $lookup,
-			is_array($lookup) => $lookup[BlockStateDictionaryEntry::encodeStateProperties($data->getStates())] ?? null
+			is_array($lookup) => $this->lookupStateIdFromDataInArray($data, $lookup)
 		};
+	}
+
+	/**
+	 * @param array<string, int> $lookup
+	 * @phpstan-param array<string, int> $lookup
+	 */
+	private function lookupStateIdFromDataInArray(BlockStateData $data, array $lookup) : ?int{
+		if(isset($this->stateDataToStateIdEncodeCache[$data])){
+			return $this->stateDataToStateIdEncodeCache[$data];
+		}
+		$result = $lookup[BlockStateDictionaryEntry::encodeStateProperties($data->getStates())] ?? null;
+		if($result !== null){
+			$this->stateDataToStateIdEncodeCache[$data] = $result;
+		}
+
+		return $result;
 	}
 
 	/**
