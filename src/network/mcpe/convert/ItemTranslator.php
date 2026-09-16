@@ -73,8 +73,19 @@ final class ItemTranslator{
 
 		$itemData = $this->itemSerializer->serializeType($item);
 
-		$numericId = $this->itemTypeDictionary->fromStringId($itemData->getName());
 		$blockStateData = $itemData->getBlock();
+
+		try{
+			$numericId = $this->itemTypeDictionary->fromStringId($itemData->getName());
+		}catch(\InvalidArgumentException $e){
+			//Some block items are mapped to an item ID which doesn't exist in the item palette (e.g. the
+			//block_id_to_item_id_map maps "minecraft:shelf_mushroom" to the bogus "minecraft:item.shelf_mushroom").
+			//For block items, the blockstate name is itself a valid item ID, so fall back to it.
+			if($blockStateData === null){
+				throw $e;
+			}
+			$numericId = $this->itemTypeDictionary->fromStringId($blockStateData->getName());
+		}
 
 		if($blockStateData !== null){
 			$blockRuntimeId = $this->blockStateDictionary->lookupStateIdFromData($blockStateData);
