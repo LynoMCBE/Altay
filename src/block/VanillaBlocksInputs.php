@@ -65,6 +65,7 @@ use pocketmine\block\utils\LeavesType;
 use pocketmine\block\utils\SaplingType;
 use pocketmine\block\utils\WoodType;
 use pocketmine\crafting\FurnaceType;
+use pocketmine\data\bedrock\PaletteBlockDefinitions;
 use pocketmine\item\enchantment\ItemEnchantmentTags as EnchantmentTags;
 use pocketmine\item\Item;
 use pocketmine\item\ToolTier;
@@ -85,7 +86,6 @@ use function strtolower;
  * @phpstan-extends RegistrySource<Block>
  */
 final class VanillaBlocksInputs extends RegistrySource{
-
 	public function getTargetClassName() : string{
 		return "VanillaBlocks";
 	}
@@ -158,7 +158,6 @@ final class VanillaBlocksInputs extends RegistrySource{
 		self::register("beacon", fn(BID $id) => new Beacon($id, "Beacon", new Info(new BreakInfo(3.0))), TileBeacon::class);
 		self::register("bed", fn(BID $id) => new Bed($id, "Bed Block", new Info(new BreakInfo(0.2))), TileBed::class);
 		self::register("bedrock", fn(BID $id) => new Bedrock($id, "Bedrock", new Info(BreakInfo::indestructible(18000000.0))));
-
 		self::register("beetroots", fn(BID $id) => new Beetroot($id, "Beetroot Block", new Info(BreakInfo::instant())));
 		self::register("bell", fn(BID $id) => new Bell($id, "Bell", new Info(BreakInfo::pickaxe(5.0))), TileBell::class);
 		self::register("blue_ice", fn(BID $id) => new BlueIce($id, "Blue Ice", new Info(BreakInfo::pickaxe(2.8))));
@@ -647,6 +646,21 @@ final class VanillaBlocksInputs extends RegistrySource{
 		self::registerOres();
 		self::registerWoodenBlocks();
 		self::registerCauldronBlocks();
+		$this->registerPaletteBlocks();
+	}
+
+	private function registerPaletteBlocks() : void{
+		$reflect = new \ReflectionClass(BlockTypeIds::class);
+		foreach(PaletteBlockDefinitions::ALL as $registryName => [$vanillaId, $stateCount, $_fullyUnsupported]){
+			$typeId = $reflect->getConstant(mb_strtoupper($registryName));
+			if(!is_int($typeId)){
+				//this allows registering new stuff without adding new type ID constants
+				//this reduces the number of mandatory steps to test new features in local development
+				\GlobalLogger::get()->error(self::class . ": No constant type ID found for $registryName, generating a new one");
+				$typeId = BlockTypeIds::newId();
+			}
+			self::register($registryName, fn(BID $id) => new PaletteMappedBlock($id, $vanillaId, $stateCount));
+		}
 	}
 
 	/**

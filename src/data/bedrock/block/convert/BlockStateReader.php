@@ -62,6 +62,22 @@ final class BlockStateReader{
 		$this->unusedStates = $this->data->getStates();
 	}
 
+	/**
+	 * Returns all raw state properties without marking them as read.
+	 *
+	 * @return Tag[]
+	 * @phpstan-return array<string, Tag>
+	 * @internal
+	 */
+	public function peekStates() : array{
+		return $this->data->getStates();
+	}
+
+	/** @internal */
+	public function consumeAllStates() : void{
+		$this->unusedStates = [];
+	}
+
 	public function missingOrWrongTypeException(string $name, ?Tag $tag) : BlockStateDeserializeException{
 		return new BlockStateDeserializeException("Property \"$name\" " . ($tag !== null ? "has unexpected type " . get_class($tag) : "is missing"));
 	}

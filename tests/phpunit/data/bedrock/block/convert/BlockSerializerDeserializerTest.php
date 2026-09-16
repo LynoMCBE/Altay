@@ -32,10 +32,19 @@ use pocketmine\block\BlockTypeIds;
 use pocketmine\block\CaveVines;
 use pocketmine\block\Farmland;
 use pocketmine\block\MobHead;
+use pocketmine\block\PaletteMappedBlock;
 use pocketmine\block\RuntimeBlockStateRegistry;
+use pocketmine\block\VanillaBlocks;
+use pocketmine\data\bedrock\BedrockDataFiles;
 use pocketmine\data\bedrock\block\BlockStateDeserializeException;
 use pocketmine\data\bedrock\block\BlockStateSerializeException;
+use pocketmine\data\bedrock\PaletteBlockDefinitions;
+use pocketmine\network\mcpe\convert\BlockStateDictionary;
+use pocketmine\utils\Filesystem;
+use function array_unique;
+use function count;
 use function print_r;
+use function strtoupper;
 
 final class BlockSerializerDeserializerTest extends TestCase{
 	private BlockStateToObjectDeserializer $deserializer;
@@ -92,5 +101,39 @@ final class BlockSerializerDeserializerTest extends TestCase{
 
 			self::assertSame($block->getStateId(), $newBlock->getStateId(), "Mismatch of blockstate for " . $block->getName() . ", " . print_r($block, true) . " vs " . print_r($newBlock, true));
 		}
+	}
+
+	public function testEveryBundledBedrockPaletteStateIsDeserializable() : void{
+		$states = BlockStateDictionary::loadStatesFromPalette(Filesystem::fileGetContents(BedrockDataFiles::BLOCK_PALETTE_NBT));
+		foreach($states as $state){
+			try{
+				$block = $this->deserializer->deserializeBlock($state);
+			}catch(BlockStateDeserializeException $e){
+				self::fail("Failed to deserialize " . $state->getName() . ": " . $e->getMessage() . " with data " . $state->toNbt());
+			}
+
+			if($block instanceof PaletteMappedBlock){
+				self::assertTrue(
+					$state->equals($this->serializer->serializeBlock($block)),
+					"Palette-mapped state did not round-trip exactly: " . $state->toNbt()
+				);
+			}
+		}
+	}
+
+	public function testPaletteBlocksHaveDistinctNativeTypes() : void{
+		$blocks = VanillaBlocks::getAll();
+		$typeIds = [];
+		$itemTypeIds = [];
+		foreach(PaletteBlockDefinitions::ALL as $registryName => [$id, $stateCount, $_fullyUnsupported]){
+			$block = $blocks[strtoupper($registryName)] ?? null;
+			self::assertInstanceOf(PaletteMappedBlock::class, $block, "Missing native block registry entry for $id");
+			self::assertSame($id, $block->getVanillaId());
+			self::assertSame($stateCount, $block->getPaletteStateCount());
+			$typeIds[] = $block->getTypeId();
+			$itemTypeIds[] = $block->asItem()->getTypeId();
+		}
+		self::assertCount(count(PaletteBlockDefinitions::ALL), array_unique($typeIds), "Palette blocks must not share a BlockTypeId");
+		self::assertCount(count(PaletteBlockDefinitions::ALL), array_unique($itemTypeIds), "Palette blocks must not share an ItemTypeId");
 	}
 }

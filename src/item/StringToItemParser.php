@@ -36,12 +36,17 @@ use pocketmine\block\utils\FroglightType;
 use pocketmine\block\utils\MobHeadType;
 use pocketmine\block\utils\SlabType;
 use pocketmine\block\VanillaBlocks as Blocks;
+use pocketmine\data\bedrock\PaletteBlockDefinitions;
 use pocketmine\item\VanillaItems as Items;
 use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\StringToTParser;
+use pocketmine\utils\Utils;
+use pocketmine\world\format\io\GlobalBlockStateHandlers;
 use function array_keys;
 use function count;
 use function strtolower;
+use function strtoupper;
+use function substr;
 
 /**
  * Handles parsing items from strings. This is used to interpret names from the /give command (and others).
@@ -58,8 +63,23 @@ final class StringToItemParser extends StringToTParser{
 		self::registerBlocks($result);
 		self::registerDynamicItems($result);
 		self::registerItems($result);
+		self::registerPaletteBlocks($result);
 
 		return $result;
+	}
+
+	private static function registerPaletteBlocks(self $result) : void{
+		//Ensure this table is ready even if the item parser is the first global registry requested.
+		GlobalBlockStateHandlers::getDeserializer();
+		$blocks = Blocks::getAll();
+		foreach(Utils::stringifyKeys(PaletteBlockDefinitions::ALL) as $registryName => [$id, $_stateCount, $fullyUnsupported]){
+			if(!$fullyUnsupported){
+				continue;
+			}
+			$alias = substr($id, 10); //strip the minecraft: namespace
+			$block = $blocks[strtoupper($registryName)];
+			$result->override($alias, fn() => $block->asItem());
+		}
 	}
 
 	private static function registerDynamicBlocks(self $result) : void{
