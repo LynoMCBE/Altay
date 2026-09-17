@@ -137,7 +137,11 @@ use function range;
  */
 final class VanillaBlockMappings{
 
-	public static function init(BlockSerializerDeserializerRegistrar $reg) : void{
+	/**
+	 * @param bool $registerPaletteBlocks Whether to register the palette block mappings. Disable this to inspect the
+	 *                                    dedicated mappings in isolation (e.g. by codegen tools).
+	 */
+	public static function init(BlockSerializerDeserializerRegistrar $reg, bool $registerPaletteBlocks = true) : void{
 		$commonProperties = CommonProperties::getInstance();
 		self::registerSimpleIdOnlyMappings($reg);
 		self::registerColoredMappings($reg, $commonProperties);
@@ -159,7 +163,9 @@ final class VanillaBlockMappings{
 		self::register1to1CustomMappings($reg, $commonProperties);
 
 		self::registerSplitMappings($reg, $commonProperties);
-		PaletteBlockStateRegistry::register($reg);
+		if($registerPaletteBlocks){
+			PaletteBlockStateRegistry::register($reg);
+		}
 	}
 
 	private static function registerSimpleIdOnlyMappings(BlockSerializerDeserializerRegistrar $reg) : void{

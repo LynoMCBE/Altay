@@ -53,10 +53,11 @@ final class ItemSerializer{
 	private array $blockItemSerializers = [];
 
 	public function __construct(
-		private BlockStateSerializer $blockStateSerializer
+		private BlockStateSerializer $blockStateSerializer,
+		bool $registerPaletteItems = true
 	){
 		$this->registerSpecialBlockSerializers();
-		new ItemSerializerDeserializerRegistrar(null, $this);
+		new ItemSerializerDeserializerRegistrar(null, $this, $registerPaletteItems);
 	}
 
 	/**

@@ -56,9 +56,15 @@ use function strtolower;
 
 final class ItemSerializerDeserializerRegistrar{
 
+	/**
+	 * @param bool $registerPaletteItems Whether to register the generic mappings for items which don't have a dedicated
+	 *                                   implementation. Disable this to inspect the dedicated mappings in isolation
+	 *                                   (e.g. by codegen tools).
+	 */
 	public function __construct(
 		private ?ItemDeserializer $deserializer,
-		private ?ItemSerializer $serializer
+		private ?ItemSerializer $serializer,
+		bool $registerPaletteItems = true
 	){
 		$this->register1to1BlockMappings();
 		$this->register1to1ItemMappings();
@@ -67,6 +73,9 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->register1ToNItemMappings();
 		$this->registerMiscBlockMappings();
 		$this->registerMiscItemMappings();
+		if($registerPaletteItems){
+			PaletteItemRegistry::register($this);
+		}
 	}
 
 	public function map1to1Item(string $id, Item $item) : void{

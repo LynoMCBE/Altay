@@ -37,11 +37,14 @@ use pocketmine\block\utils\MobHeadType;
 use pocketmine\block\utils\SlabType;
 use pocketmine\block\VanillaBlocks as Blocks;
 use pocketmine\data\bedrock\PaletteBlockDefinitions;
+use pocketmine\data\bedrock\item\PaletteItemDefinitions;
+use pocketmine\data\bedrock\item\PaletteItemRegistry;
 use pocketmine\item\VanillaItems as Items;
 use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\StringToTParser;
 use pocketmine\utils\Utils;
 use pocketmine\world\format\io\GlobalBlockStateHandlers;
+use function array_flip;
 use function array_keys;
 use function count;
 use function strtolower;
@@ -64,6 +67,7 @@ final class StringToItemParser extends StringToTParser{
 		self::registerDynamicItems($result);
 		self::registerItems($result);
 		self::registerPaletteBlocks($result);
+		self::registerPaletteItems($result);
 
 		return $result;
 	}
@@ -79,6 +83,19 @@ final class StringToItemParser extends StringToTParser{
 			$alias = substr($id, 10); //strip the minecraft: namespace
 			$block = $blocks[strtoupper($registryName)];
 			$result->override($alias, fn() => $block->asItem());
+		}
+	}
+
+	private static function registerPaletteItems(self $result) : void{
+		$knownAliases = array_flip($result->getKnownAliases());
+		foreach(PaletteItemDefinitions::ALL as $registryName => $id){
+			$alias = substr($id, 10); //strip the minecraft: namespace
+			if(isset($knownAliases[$alias])){
+				//don't clobber an existing alias - some placeholder IDs (e.g. "wool", "tallgrass") are legacy names
+				//which already resolve to a modern item
+				continue;
+			}
+			$result->register($alias, fn() => PaletteItemRegistry::createItem($registryName, $id));
 		}
 	}
 

@@ -71,5 +71,11 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction
 
+      - name: Verify block palette definitions are up to date
+        run: php tools/audit-block-palette.php
+
+      - name: Verify item palette definitions are up to date
+        run: php tools/audit-item-palette.php
+
       - name: Run PHPUnit tests
         run: ./vendor/bin/phpunit --bootstrap vendor/autoload.php --fail-on-warning tests/phpunit

@@ -44,9 +44,10 @@ final class ItemDeserializer{
 	private array $deserializers = [];
 
 	public function __construct(
-		private BlockStateDeserializer $blockStateDeserializer
+		private BlockStateDeserializer $blockStateDeserializer,
+		bool $registerPaletteItems = true
 	){
-		new ItemSerializerDeserializerRegistrar($this, null);
+		new ItemSerializerDeserializerRegistrar($this, null, $registerPaletteItems);
 	}
 
 	/**
