@@ -28,12 +28,18 @@ use altay\network\transport\Transport;
 
 final class RakNetTransportFactory implements TransportFactory{
 
+	/**
+	 * @phpstan-param positive-int $maxSplitPacketParts
+	 * @phpstan-param positive-int $maxConcurrentSplitPackets
+	 */
 	public function __construct(
 		private string $ip,
 		private int $port,
 		private bool $ipV6,
 		private int $maxMtuSize,
-		private int $serverId
+		private int $serverId,
+		private int $maxSplitPacketParts,
+		private int $maxConcurrentSplitPackets
 	){}
 
 	public function getName() : string{
@@ -52,7 +58,9 @@ final class RakNetTransportFactory implements TransportFactory{
 			$this->ipV6,
 			$this->maxMtuSize,
 			RakNetTransport::BEDROCK_RAKNET_PROTOCOL_VERSION,
-			$this->serverId
+			$this->serverId,
+			$this->maxSplitPacketParts,
+			$this->maxConcurrentSplitPackets
 		);
 	}
 }

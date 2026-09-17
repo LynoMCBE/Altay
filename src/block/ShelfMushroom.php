@@ -98,6 +98,10 @@ class ShelfMushroom extends Flowable implements Ageable, HorizontalFacing{
 		return [];
 	}
 
+	public function getDropsForIncompatibleTool(Item $item) : array{
+		return [];
+	}
+
 	private function grow(?Player $player) : bool{
 		if($this->age >= self::MAX_AGE){
 			return false;

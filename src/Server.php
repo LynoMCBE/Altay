@@ -1425,7 +1425,15 @@ class Server {
 			if($useRakNet){
 				$transport = new ThreadedTransport(
 					$this->logger,
-					new RakNetTransportFactory($ip, $port, $ipV6, $this->configGroup->getPropertyInt(Yml::NETWORK_MAX_MTU_SIZE, 1492), mt_rand(0, PHP_INT_MAX)),
+					new RakNetTransportFactory(
+						$ip,
+						$port,
+						$ipV6,
+						$this->configGroup->getPropertyInt(Yml::NETWORK_MAX_MTU_SIZE, 1492),
+						mt_rand(0, PHP_INT_MAX),
+						max(1, $this->configGroup->getPropertyInt(Yml::NETWORK_MAX_SPLIT_PACKET_PARTS, 192)),
+						max(1, $this->configGroup->getPropertyInt(Yml::NETWORK_MAX_CONCURRENT_SPLIT_PACKETS, 4))
+					),
 					$this->tickSleeper
 				);
 				$rakNetRegistered = $this->network->registerInterface(new TransportNetworkInterface($this, $transport, $packetBroadcaster, $entityEventBroadcaster, $typeConverter));
@@ -1446,8 +1454,8 @@ class Server {
 					new NetherNetTransportFactory(
 						Binary::readLLong(substr(hash("sha256", $this->getServerUniqueId()->getBytes(), true), 0, 8)),
 						$this->getMotd(),
-						//the title of the world card, which is the world players are joining
-						$this->worldManager->getDefaultWorld()?->getDisplayName() ?? $this->getName(),
+						//the second line of the server card, kept on the same source as the RakNet pong
+						$this->getName(),
 						$this->getMaxPlayers(),
 						$ip,
 						NetherNetTransport::DISCOVERY_PORT,

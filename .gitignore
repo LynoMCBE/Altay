@@ -19,6 +19,7 @@ server.lock
 /phpstan.neon
 /docker/test_data/
 /identity.key
+/*.key
 
 # Common IDEs
 .idea/*

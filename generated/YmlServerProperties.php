@@ -91,7 +91,9 @@ final class YmlServerProperties{
 	public const NETWORK_BATCH_THRESHOLD = 'network.batch-threshold';
 	public const NETWORK_COMPRESSION_LEVEL = 'network.compression-level';
 	public const NETWORK_ENABLE_ENCRYPTION = 'network.enable-encryption';
+	public const NETWORK_MAX_CONCURRENT_SPLIT_PACKETS = 'network.max-concurrent-split-packets';
 	public const NETWORK_MAX_MTU_SIZE = 'network.max-mtu-size';
+	public const NETWORK_MAX_SPLIT_PACKET_PARTS = 'network.max-split-packet-parts';
 	public const NETWORK_NETHERNET = 'network.nethernet';
 	public const NETWORK_NETHERNET_ADVERTISE_ADDRESSES = 'network.nethernet.advertise-addresses';
 	public const NETWORK_NETHERNET_ICE_PASSWORD = 'network.nethernet.ice-password';

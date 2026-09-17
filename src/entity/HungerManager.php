@@ -216,9 +216,13 @@ class HungerManager{
 			}
 		}
 
-		if($food <= 6){
+		if(!$this->canSprint()){
 			$this->entity->setSprinting(false);
 		}
+	}
+
+	public function canSprint() : bool{
+		return !$this->enabled || $this->getFood() > 6;
 	}
 
 	public function isEnabled() : bool{

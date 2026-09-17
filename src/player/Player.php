@@ -2154,6 +2154,9 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		if($sprint === $this->sprinting){
 			return true;
 		}
+		if($sprint && !$this->hungerManager->canSprint()){
+			return false;
+		}
 		$ev = new PlayerToggleSprintEvent($this, $sprint);
 		$ev->call();
 		if($ev->isCancelled()){
